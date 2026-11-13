@@ -1,0 +1,223 @@
+<title>Datalogger Provisioning Guide</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a reading column with a sticky contents rail on wide screens; the same tokens as the dashboard. */
+:root{
+  --bg:#f1f4f2; --surface:#ffffff; --surface-2:#e8edeb; --fg:#15201c; --muted:#5d6b66; --line:#d3dbd8;
+  --accent:#0d6b5b; --accent-ink:#ffffff; --accent-soft:#dbeee8;
+  --ok:#1f8a4f; --ok-soft:#dff3e6; --warn:#a56d14; --warn-soft:#fbf0d8; --bad:#bf3b2f; --bad-soft:#fbe3df; --code:#edf1ef;
+  --font:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1513; --surface:#171e1b; --surface-2:#1f2825; --fg:#e4eae7; --muted:#95a39d; --line:#2b3632;
+  --accent:#4fc7a4; --accent-ink:#06211a; --accent-soft:#193a32;
+  --ok:#5ec784; --ok-soft:#173424; --warn:#e2ab4c; --warn-soft:#3a2d12; --bad:#ec7a6d; --bad-soft:#3f1f1b; --code:#1b2320; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0f1513; --surface:#171e1b; --surface-2:#1f2825; --fg:#e4eae7; --muted:#95a39d; --line:#2b3632;
+  --accent:#4fc7a4; --accent-ink:#06211a; --accent-soft:#193a32;
+  --ok:#5ec784; --ok-soft:#173424; --warn:#e2ab4c; --warn-soft:#3a2d12; --bad:#ec7a6d; --bad-soft:#3f1f1b; --code:#1b2320; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15.5px;line-height:1.55;margin:0}
+.wrap{max-width:1040px;margin:0 auto;padding-block:24px 80px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:220px minmax(0,1fr);gap:36px}
+nav.toc{position:sticky;top:16px;align-self:start;font-size:14px;display:grid;gap:4px}
+nav.toc a{color:var(--muted);text-decoration:none;padding:4px 8px;border-left:2px solid var(--line)}
+nav.toc a:hover{color:var(--fg);border-left-color:var(--accent)}
+nav.toc .back{margin-bottom:10px;color:var(--accent);border:0;padding-left:0;font-weight:500}
+main{min-width:0;max-width:68ch}
+h1{font-size:26px;margin:0 0 6px;text-wrap:balance;font-weight:600}
+h2{font-size:19px;margin:40px 0 10px;padding-top:14px;border-top:1px solid var(--line);text-wrap:balance;font-weight:600}
+h3{font-size:15px;margin:22px 0 6px;font-weight:600}
+p{margin:0 0 12px}
+.lede{color:var(--muted);font-size:16px;margin-bottom:18px}
+ul,ol{margin:0 0 12px;padding-left:22px}
+li{margin-bottom:5px}
+code{font-family:var(--mono);font-size:.9em;background:var(--code);padding:1px 5px;border-radius:4px}
+pre{background:var(--code);border-radius:8px;padding:12px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.5;margin:0 0 12px}
+pre code{background:none;padding:0}
+.roles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0 18px}
+.role{border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--surface)}
+.role b{display:block;margin-bottom:4px}
+.role p{font-size:14px;color:var(--muted);margin:0}
+.step{display:grid;grid-template-columns:34px 1fr;gap:12px;margin:14px 0}
+.step .n{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--mono);font-weight:500}
+.step h3{margin:4px 0 6px}
+.note{display:flex;gap:10px;padding:10px 12px;border-radius:8px;font-size:14px;margin:0 0 12px;background:var(--surface-2)}
+.note.warn{background:var(--warn-soft);color:var(--warn)}
+.note.ok{background:var(--ok-soft);color:var(--ok)}
+.note .i{font-family:var(--mono);font-weight:500;flex:none}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:0 0 14px}
+th{text-align:left;font-size:12px;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);font-weight:500;padding:8px;background:var(--surface-2)}
+td{padding:8px;border-top:1px solid var(--line);vertical-align:top}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px;margin-bottom:14px}
+.tbl table{margin:0}
+dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:14.5px;margin:0 0 12px}
+dt{font-weight:600;white-space:nowrap}
+dd{margin:0}
+kbd{font-family:var(--mono);font-size:.85em;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--surface)}
+@media (max-width:760px){.wrap{grid-template-columns:1fr}nav.toc{position:static;grid-template-columns:1fr 1fr}.roles{grid-template-columns:1fr}}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <a class="back" href="index.html">← Open the dashboard</a>
+  <a href="#who">Who does what</a>
+  <a href="#before">Before you start</a>
+  <a href="#onboard">Onboard a new plant</a>
+  <a href="#edit">Change a running plant</a>
+  <a href="#csv">CSV from the PLC programmer</a>
+  <a href="#trouble">When something is wrong</a>
+  <a href="#demo">Run the demo</a>
+  <a href="#glossary">Glossary</a>
+</nav>
+
+<main>
+<h1>Datalogger Provisioning Guide</h1>
+<p class="lede">How to put a Raspberry Pi datalogger on a plant, and how to change it later, using the onboarding dashboard. Nothing is typed on the Pi itself. The dashboard explains itself as you go: every step has a <em>How this step works</em> box, every unusual word has a <b>?</b> next to it, and the Tags step has a <em>Which type?</em> helper. This guide is the longer version.</p>
+
+<h2 id="who">Who does what</h2>
+<div class="roles">
+  <div class="role"><b>Field / electrical engineer</b><p>Mounts the Pi, gives it power and an Ethernet cable to the site router (client internet or the SIM‑based 4G router), reads the 6‑digit device code off the Pi's OLED display. Wires RS485 meters and sets their slave IDs.</p></div>
+  <div class="role"><b>PLC programmer</b><p>Owns the Modbus addresses. Hands over a CSV of <em>tag, address, type</em> for every value the PLC exposes, and tells you when an address changes.</p></div>
+  <div class="role"><b>Ops / IoT engineer</b><p>Runs the dashboard: pairs the Pi, enters the plant, imports the tag list, pushes the config. Pushes a new version whenever something changes.</p></div>
+</div>
+<p>The Pi runs one base image that is identical on every site (the datalogger service under pm2). Everything specific to a plant lives in a <code>config.json</code> that the server builds and sends to the device as an AWS IoT job; the device saves it, reports success and restarts the service. The Pi fetches its own certificate; no one copies certificates around.</p>
+<p>On boot the Pi shows its state on the small OLED: <em>Health check</em> (waiting for CPU temperature / RAM to settle), <em>Waiting for internet</em>, then <em>Device code 482 913</em>. Two buttons sit next to it: hold the restart button to restart the service; press the scan button to list the USB serial ports on the display (useful when adding an RS485 converter).</p>
+
+<h2 id="before">Before you start</h2>
+<p>The same four items are shown as a checklist at the top of the Device step.</p>
+<ul>
+  <li><b>The Pi is powered and on the site router by Ethernet.</b> Within about two minutes it registers itself and shows up under <em>Waiting to be assigned</em>. Wi‑Fi is not used.</li>
+  <li><b>You have the PLC's IP address</b> on the plant LAN, and the port and unit ID if the integrator changed them (defaults 502 and 1).</li>
+  <li><b>You have the tag list</b> from the PLC programmer (see <a href="#csv">CSV format</a>). Without the Modbus addresses there is nothing to read; the IO list and wiring drawings do not contain them.</li>
+  <li><b>For RS485 meters or probes</b> on a USB converter: their slave IDs, baud rate and parity, from whoever wired them.</li>
+  <li>Tailscale is not needed for onboarding. It only matters for remote support later.</li>
+</ul>
+
+<h2 id="onboard">Onboard a new plant</h2>
+<p>Five steps, top of the dashboard. You can go back at any time; nothing reaches the Pi until you press <em>Push config to device</em> on the last step.</p>
+
+<div class="step"><div class="n">1</div><div><h3>Device</h3>
+<p>Click the Pi in the waiting list, or type its device code. The code is shown on the Pi's OLED display after boot and is the only thing a field engineer needs to read out to you. An <em>offline</em> device can still be set up: the config waits as a job and applies when the Pi reconnects.</p>
+<p>If the Pi is not listed, open <em>My device isn't listed</em> and work through the checklist with whoever is on site. Power first, then the Ethernet link light, then whether the router has internet.</p></div></div>
+
+<div class="step"><div class="n">2</div><div><h3>Plant</h3>
+<p>Name the plant. The <em>Plant ID</em> is derived from the name, becomes the data topic (<code>&lt;plant-id&gt;/pub</code>, which the IoT rule forwards to SQS) and cannot change after the first push, so check it before moving on. One datalogger serves one PLC; a plant with two PLCs gets two loggers and two PLC IDs.</p>
+<p><em>Send data every</em> is how often the Pi sends a payload. 60 seconds is the standard; go shorter only when the process needs it. <em>Extra logging on the Pi</em> is for the support team while they investigate a problem; switch it off again afterwards. The data topic, the Pi's cloud identity and the certificate are under <em>Technical details</em>; they are set up automatically and you never need to touch them.</p></div></div>
+
+<div class="step"><div class="n">3</div><div><h3>Connections</h3>
+<p>Enter the PLC's IP. <em>Test connection</em> asks the Pi to reach the PLC from the plant side; if that fails, the Pi and PLC are not on the same network or the PLC's Modbus server is off.</p>
+<p><b>Number format</b> (under <em>Advanced</em>) is the one setting that is sometimes wrong and hard to guess. PLCs split a decimal across two registers in one of four ways, called ABCD, CDAB, DCBA and BADC. Leave it on ABCD. If decimals later come out as nonsense, do not guess: the Tags step has <em>Find the number format</em>, which works it out from a single known reading (see step 4).</p>
+<p><b>On/off values</b> differ by PLC brand: some keep each one as a coil, some as an input, some pack sixteen into one register (Delta vs Fuji). That is chosen per tag in step 4, not here.</p>
+<p>Add each meter or probe wired to the Pi with a name you will recognise later, which converter it is on (USB 1 or USB 2), its speed, parity and address. These three come from the meter's own menu or from whoever wired it; typical values are 9600, none and 1. Two meters on one converter cannot have the same address. With more than one meter on a converter the Pi pauses about six seconds between them; the dashboard shows the resulting round time and warns if it is longer than the sending interval.</p></div></div>
+
+<div class="step"><div class="n">4</div><div><h3>Tags</h3>
+<p>One row per value you want from the plant. The fastest way is <em>Import CSV</em> with the PLC programmer's list; rows with problems are shown and skipped, the good ones are imported. Or add rows by hand.</p>
+<ul>
+  <li><b>Tag</b>: the DigitalPaani standard name (for example <code>PH_AXTdd1_1:ADA_ADA</code>, <code>FMF_EQTdd1ssAXTdd1_1:ADA_ADA</code>). It is the key in every payload, so agree it once.</li>
+  <li><b>Type</b>: what the PLC stores at that address, in plain words with the PLC programmer's word in brackets. Ask the programmer which it is and pick the matching row:</li>
+</ul>
+<div class="tbl"><table>
+<tr><th>The PLC programmer says</th><th>Pick</th><th>Registers used</th></tr>
+<tr><td>REAL, float</td><td>Decimal (REAL)</td><td>2</td></tr>
+<tr><td>INT</td><td>Whole number (INT)</td><td>1</td></tr>
+<tr><td>UINT, WORD</td><td>Whole number ≥ 0 (UINT)</td><td>1</td></tr>
+<tr><td>DINT, long</td><td>Large whole number (DINT)</td><td>2</td></tr>
+<tr><td>UDINT, DWORD (typical for totals)</td><td>Large whole number ≥ 0 (UDINT)</td><td>2</td></tr>
+<tr><td>LREAL, DOUBLE (rare)</td><td>Decimal, 64-bit (DOUBLE)</td><td>4</td></tr>
+<tr><td>M or Y relay, coil</td><td>On/off: coil</td><td>1 coil</td></tr>
+<tr><td>X input, discrete input</td><td>On/off: input</td><td>1 input</td></tr>
+<tr><td>bit 3 of D3000, packed status word</td><td>On/off: bit in a register, with the bit number 0–15</td><td>shares 1 register</td></tr>
+</table></div>
+<ul>
+  <li>A type that uses two or four registers occupies the address and the next ones; the next tag must start after them. The dashboard flags any overlap.</li>
+  <li><b>Bit</b>: only for <em>bit in a register</em>. Up to sixteen on/off tags may share one register, each with its own bit. The picture <em>Bits inside registers</em> under the table shows every such register as sixteen cells; a red cell means two tags claim the same bit.</li>
+  <li><b>Scale</b>: multiply the raw value. A PLC that stores pH 7.2 as the integer 72 needs scale 0.1; a 4–20 mA value stored as 0–27648 needs its own factor.</li>
+  <li><b>Role</b>: <em>Use as it is</em> for most tags. <em>Already a running total</em> when the PLC itself keeps a running total (kWh, m³). <em>A rate · make a running total</em> when the Pi should add a flow rate up into a running total: it sends <code>&lt;tag&gt;_total</code>, keeps it across restarts and never lets it decrease, even when a sensor misfires.</li>
+  <li><b>Zero below</b>: flow sensors read a little noise when pumps and valves are off. Values below this threshold are sent as 0.</li>
+</ul>
+<p>Red rows mean the config cannot be pushed; the message under the table says what to fix and names the row. <em>How the Pi will read it</em> shows the reads the Pi will make each cycle. You do not edit it; it is worked out from the addresses.</p>
+<p><b>Find the number format</b>: take any decimal tag whose live reading you know (pH 7.2, say). Ask the PLC programmer for its two raw register values, or read them with any Modbus tool. Enter the expected reading and the two registers; the dashboard decodes them all four ways, marks the one that reproduces 7.2 and offers <em>Use</em>. That sets the number format for the PLC. Without an expected reading it still shows the four results and colours the nonsense ones red.</p></div></div>
+
+<div class="step"><div class="n">5</div><div><h3>Review and push</h3>
+<p>Check the four cards, then <em>Push config to device</em>. The timeline shows the job reaching the Pi, the Pi applying it, and the first payload arriving, with live values in tiles. If the device is offline the timeline waits at <em>Waiting for the Pi to come online</em>; leave the page, the job stays queued.</p>
+<p>If the push fails with a message from the Pi (for example a serial port that does not exist), fix the step it names and press <em>Try again</em>.</p></div></div>
+
+<h2 id="edit">Change a running plant</h2>
+<p>On the Device step, pick the plant under <em>Change a plant that is already running</em>. Its current config loads, the assigned Pi is selected, and you land on the Tags step. Make the change and push; the Pi receives the next version number and switches over without a reboot. Every version is kept on the server.</p>
+<div class="tbl"><table>
+<tr><th>You want to</th><th>Do this</th></tr>
+<tr><td>Add or remove a value</td><td>Tags step: add the row (or import the updated CSV with <em>Replace the current tags</em> ticked) or press ✕ on the row. Push.</td></tr>
+<tr><td>Fix a wrong reading</td><td>Nonsense decimals: Tags step, <em>Find the number format</em>, press <em>Use</em> on the matching one. Value 10× too big or small: fix the scale. Push.</td></tr>
+<tr><td>The PLC programmer moved an address</td><td>Tags step: change the address on that row. If the whole block moved, import the new CSV with <em>Replace</em>. Push.</td></tr>
+<tr><td>Send data more or less often</td><td>Plant step: change <em>Send data every</em>. Push.</td></tr>
+<tr><td>Add a meter or probe</td><td>Connections step: add it. Tags step: add its tags with that meter as the source. Push.</td></tr>
+<tr><td>Replace a broken Pi</td><td>Device step: select the <em>new</em> Pi from the waiting list, then on the Plant step choose <em>Replacing a Pi</em> and pick the plant. The config copies across; pushing retires the old Pi.</td></tr>
+<tr><td>Change the plant name</td><td>Plant step. The plant ID stays as it was; only the display name changes.</td></tr>
+</table></div>
+<div class="note"><span class="i">i</span><span>Pushing never loses data on the Pi. Payloads that could not be delivered while the config was changing are buffered on the device and sent afterwards.</span></div>
+
+<h2 id="csv">CSV from the PLC programmer</h2>
+<p>Ask for one file per PLC, in this shape. A header row is optional and column order does not matter.</p>
+<pre><code>tag,address,type,bit,scale,unit,source,role,zero_below
+PH_AXTdd1_1:ADA_ADA,1000,REAL,,1,pH,PLC,,
+DO_ATdd1_1:ADA_ADA,1200,REAL,,1,mg/L,PLC,,
+FMF_EQTdd1ssAXTdd1_1:ADA_ADA,1400,REAL,,1,m3/h,PLC,flow,0.5
+LT_EQTdd1_1:ADA_ADA,1600,INT,,0.1,m,PLC,,
+ONOFF_AGT_1:ADA_ADA,3000,BOOL,0,,,PLC,,
+TRP_AGT_1:ADA_ADA,3000,BOOL,1,,,PLC,,
+FMT_MAIN_1:ADA,1402,UDINT,,1,m3,PLC,counter,
+EM1_kWh,100,UDINT,,0.1,kWh,Energy meter 1,counter,</code></pre>
+<dl>
+  <dt>tag</dt><dd>The DigitalPaani standard name: letters, digits, <code>_</code> and <code>:</code>, starting with a letter. This is the key the data carries forever, so agree it once.</dd>
+  <dt>address</dt><dd>The Modbus holding‑register address (or coil / discrete‑input address for booleans), as the PLC programmer defined it.</dd>
+  <dt>type</dt><dd><code>REAL</code> (float32), <code>DOUBLE</code> (float64), <code>INT</code> (int16), <code>UINT</code>/<code>WORD</code> (uint16), <code>DINT</code> (int32), <code>UDINT</code> (uint32), <code>BOOL</code> (coil), <code>DI</code> (discrete input). A <code>BOOL</code> with a bit number is a packed bit of a holding register.</dd>
+  <dt>bit</dt><dd>0–15, only for packed booleans.</dd>
+  <dt>scale</dt><dd>Optional, default 1 (the <code>Scaling_Factor</code> of the device config).</dd>
+  <dt>source</dt><dd><code>PLC</code>, or the exact name you gave an RS485 device on the Connections step.</dd>
+  <dt>role</dt><dd><code>flow</code> to have the Pi integrate a rate into <code>&lt;tag&gt;_total</code>; <code>counter</code> for a register that already totals; empty otherwise.</dd>
+  <dt>zero_below</dt><dd>Optional flow‑noise threshold.</dd>
+</dl>
+<p>The compiled <code>config.json</code> carries the same information twice: in the structured <code>tags</code>/<code>polls</code> sections, and as the flat <code>POLLING_INTERVAL</code>, <code>ANALOG_SENSORS</code> (start, end, data_type, word_order, Scaling_Factor) and <code>BOOLEAN_SENSORS</code> (address, fc, bit_index) keys the existing <code>main.py</code> loads. Either runtime can use it.</p>
+
+<h2 id="trouble">When something is wrong</h2>
+<div class="tbl"><table>
+<tr><th>Symptom</th><th>Likely cause</th><th>What to do</th></tr>
+<tr><td>Pi not in the waiting list</td><td>No power, no Ethernet link, router without internet, or the Pi is already assigned to a plant</td><td>Checklist under <em>My device isn't listed</em>. If it was assigned before, find it under the running plants instead.</td></tr>
+<tr><td>Device code not accepted</td><td>Mis-read digit, or the device is already assigned</td><td>Compare with the OLED; look under running plants.</td></tr>
+<tr><td>OLED stuck on "Health check"</td><td>CPU over 80 °C or RAM nearly full</td><td>Check ventilation and the enclosure; the service waits until the Pi cools and then continues on its own.</td></tr>
+<tr><td>A flow total jumped or reset</td><td>Someone cleared <code>totalizer_data.json</code>, or the tag was renamed (totals are kept per tag name)</td><td>Keep tag names stable; if a meter was replaced, note the offset downstream.</td></tr>
+<tr><td>Push stays at "Waiting for the Pi"</td><td>Pi offline</td><td>Nothing to fix on the dashboard. The job applies when it reconnects.</td></tr>
+<tr><td>Decimals like 1.2e‑38 or 4.6e+21</td><td>Wrong number format</td><td>Tags step → <em>Find the number format</em> → <em>Use</em> → push.</td></tr>
+<tr><td>Values are 10× or 100× off</td><td>Scale</td><td>Tags step → scale → push.</td></tr>
+<tr><td>A value goes negative when it never should, or jumps to about 65 000</td><td>Whole number marked as the wrong kind (INT vs UINT, DINT vs UDINT)</td><td>Tags step → switch the type to the ≥ 0 kind (or back) → push.</td></tr>
+<tr><td>An on/off is always 0 or always 1</td><td>Wrong bit number, or it is a coil where an input was chosen (or the reverse)</td><td>Tags step → check the bit in the picture under the table, or switch coil / input → push.</td></tr>
+<tr><td>A total jumps backwards or counts twice</td><td>Role mixed up: a running total treated as a rate, or the reverse</td><td>Tags step → role → push. Rates become <code>&lt;tag&gt;_total</code>; a PLC total is sent as it is.</td></tr>
+<tr><td>A tag shows — (dash) in the tiles</td><td>That read failed: wrong address, PLC refused the block, or the RS485 device is not answering</td><td>Check the address with the PLC programmer; for RS485, check slave ID, baud, parity and wiring polarity.</td></tr>
+<tr><td>Data stopped after a site visit</td><td>A wire was moved to another input, or the PLC program changed</td><td>Ask what changed; update the address or the CSV; push.</td></tr>
+<tr><td>Serial values repeat for a long time</td><td>Too many devices on one converter for the publish interval</td><td>Raise the interval, or move devices to a second converter (<code>/dev/ttyUSB1</code>).</td></tr>
+<tr><td>"Device has not provisioned itself" on push (AWS)</td><td>The Pi reached the dashboard but not IoT Core yet</td><td>Wait a minute and push again; if it persists the base image's claim certificate is missing or revoked.</td></tr>
+</table></div>
+
+<h2 id="demo">Run the demo</h2>
+<p>For a presentation on a laptop, with no plant and no AWS:</p>
+<pre><code>python demo.py</code></pre>
+<p>It resets the local database, starts the backend and three simulated Pis, seeds one plant that is already running, and opens the dashboard. You then have a Pi waiting with its device code shown, a running plant to edit, and a third Pi that drops offline after about 90 seconds. <kbd>Ctrl</kbd>+<kbd>C</kbd> stops everything.</p>
+
+<h2 id="glossary">Glossary</h2>
+<dl>
+  <dt>Device code</dt><dd>Six digits issued when the Pi first registers, shown on its OLED and cached on the device. Proves the person on site has the physical device; a cloned SD card cannot push data as another plant.</dd>
+  <dt>Packed bits</dt><dd>Sixteen on/off states stored in one holding register; each tag names the register and its bit index.</dd>
+  <dt>Job</dt><dd>One config version sent to one Pi. Queued → sent → applied, or failed with a message from the Pi.</dd>
+  <dt>Poll block</dt><dd>One Modbus read request: a start address and a count. The dashboard merges nearby tags into blocks and splits at the Modbus limit of 125 registers.</dd>
+  <dt>Number format (word order)</dt><dd>How a PLC splits a 32‑bit value across two 16‑bit registers: ABCD, CDAB, DCBA or BADC. ABCD is the common case; <em>Find the number format</em> on the Tags step works it out from one known reading.</dd>
+  <dt>Meter, probe</dt><dd>Any RS485 device wired to the Pi's USB converter and read directly, rather than through the PLC: energy meters, flow meters, MLSS or DO probes.</dd>
+  <dt>Totaliser</dt><dd>A value that only increases, such as a flow total or energy meter reading.</dd>
+  <dt>Source</dt><dd>Where a tag is read from: the PLC over Modbus TCP, or an RS485 device over a USB converter.</dd>
+  <dt>Topic</dt><dd><code>&lt;plant-id&gt;/pub</code>, the MQTT address the Pi publishes to; one IoT rule on <code>+/pub</code> forwards every site to SQS. <code>&lt;plant-id&gt;/control</code> carries remote‑control commands back to the Pi, <code>&lt;plant-id&gt;/health</code> its CPU, RAM and buffer status.</dd>
+  <dt>Payload</dt><dd>One flat JSON object per cycle: <code>plantId</code>, <code>plcId</code>, <code>TIMESTAMP</code>, then one key per tag. While the internet is down the Pi stores them locally and replays one old payload per cycle once it is back.</dd>
+</dl>
+</main>
+</div>

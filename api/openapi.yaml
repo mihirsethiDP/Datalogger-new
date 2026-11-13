@@ -1,0 +1,438 @@
+openapi: 3.1.0
+info:
+  title: Datalogger Provisioning API
+  version: 0.1.0
+  description: |
+    Zero-touch onboarding for Raspberry Pi dataloggers.
+
+    Two callers:
+    * **Pi agent** (base image, identical on every device): registers its serial, heartbeats,
+      fetches config, acknowledges jobs, posts data.
+    * **Onboarding dashboard**: lists waiting devices, saves a plant draft, pushes it as a job.
+
+    Transports (backend `DL_TRANSPORT`):
+    * `mock` — the heartbeat response carries the pending job; the agent fetches `/config`,
+      acknowledges over HTTP and posts payloads to `/data`.
+    * `aws` — the agent provisions itself in IoT Core under its serial (fleet provisioning by
+      claim). `push` attaches a per-device policy limited to the plant's topics and creates an
+      IoT Core job whose document is the config; the agent acknowledges through the Jobs API and
+      publishes payloads to `dp/{plant_id}/{plc_id}/data`, which an IoT rule forwards to SQS.
+      Register and heartbeat stay on HTTP (online state); the heartbeat then never carries a job,
+      and `/jobs/{jobId}` syncs its status from IoT Core.
+
+    Config documents are compiled on the server (validation + poll plan), never hand-written.
+servers:
+  - url: http://127.0.0.1:8000/api/v1
+tags:
+  - name: agent
+    description: Called by the Pi base image
+  - name: dashboard
+    description: Called by the onboarding UI
+
+paths:
+  /devices/register:
+    post:
+      tags: [agent]
+      summary: Register a device by serial (idempotent)
+      description: First call creates the device as `unassigned` and allocates a 6-digit pairing code. Later calls refresh `last_seen` and the image version.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '200':
+          description: Device record
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Device' }
+
+  /devices/{serial}/heartbeat:
+    post:
+      tags: [agent]
+      summary: Report liveness and collect a pending job
+      parameters: [{ $ref: '#/components/parameters/serial' }]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Heartbeat' }
+      responses:
+        '200':
+          description: Pending job, if any. Always null with the aws transport.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job: { oneOf: [{ $ref: '#/components/schemas/Job' }, { type: 'null' }] }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /devices/{serial}/config:
+    get:
+      tags: [agent, dashboard]
+      summary: Current compiled config for the device
+      parameters: [{ $ref: '#/components/parameters/serial' }]
+      responses:
+        '200':
+          description: Config document
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Config' }
+        '404': { description: Device is not assigned to a plant }
+
+  /devices/{serial}/jobs/{jobId}/ack:
+    post:
+      tags: [agent]
+      summary: Acknowledge a job
+      parameters:
+        - { $ref: '#/components/parameters/serial' }
+        - { name: jobId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [applied, failed] }
+                message: { type: string }
+      responses:
+        '200':
+          description: Updated job
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Job' }
+
+  /devices/{serial}/data:
+    post:
+      tags: [agent]
+      summary: Post one payload (mock transport for MQTT publish)
+      parameters: [{ $ref: '#/components/parameters/serial' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Payload' }
+      responses:
+        '204': { description: Stored }
+        '409': { description: Device is not assigned; payload rejected }
+
+  /devices:
+    get:
+      tags: [dashboard]
+      summary: List devices
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [unassigned, assigned, all], default: unassigned }
+      responses:
+        '200':
+          description: Devices, most recently seen first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Device' }
+
+  /devices/pair:
+    post:
+      tags: [dashboard]
+      summary: Find a waiting device by its pairing code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, pattern: '^[0-9]{6}$' }
+      responses:
+        '200':
+          description: Matching device
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Device' }
+        '404': { description: No waiting device has this code }
+
+  /devices/{serial}:
+    get:
+      tags: [dashboard]
+      summary: One device
+      parameters: [{ $ref: '#/components/parameters/serial' }]
+      responses:
+        '200':
+          description: Device
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Device' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /devices/{serial}/live:
+    get:
+      tags: [dashboard]
+      summary: Last payload received from the device
+      parameters: [{ $ref: '#/components/parameters/serial' }]
+      responses:
+        '200':
+          description: Last payload, or null
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  payload: { oneOf: [{ $ref: '#/components/schemas/Payload' }, { type: 'null' }] }
+                  received_at: { type: string, format: date-time, nullable: true }
+
+  /plants:
+    get:
+      tags: [dashboard]
+      summary: List plants
+      responses:
+        '200':
+          description: Plants
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PlantSummary' }
+
+  /plants/{plantId}:
+    get:
+      tags: [dashboard]
+      summary: Plant draft (editable form of the config)
+      parameters: [{ $ref: '#/components/parameters/plantId' }]
+      responses:
+        '200':
+          description: Draft
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlantDraft' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [dashboard]
+      summary: Save a plant draft and compile it
+      description: Validates the draft (duplicate tags, overlapping registers, address range, serial bus conflicts) and returns the compiled config plus warnings. Errors return 422 and nothing is saved.
+      parameters: [{ $ref: '#/components/parameters/plantId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlantDraft' }
+      responses:
+        '200':
+          description: Compiled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompileResult' }
+        '422':
+          description: Validation errors
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValidationError' }
+
+  /plants/{plantId}/push:
+    post:
+      tags: [dashboard]
+      summary: Assign a device and push the compiled config as a job
+      description: Creates config version N+1, assigns the device to the plant (retiring any device previously assigned there), and queues a job. With the AWS transport the job is created in IoT Core Jobs; with the mock transport the device collects it on its next heartbeat.
+      parameters: [{ $ref: '#/components/parameters/plantId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [serial]
+              properties:
+                serial: { type: string }
+      responses:
+        '200':
+          description: Queued job
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Job' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Device is assigned to a different plant, or (aws) has not provisioned itself in IoT Core yet }
+        '502': { description: (aws) IoT Core refused the job; the config version is kept, push again }
+
+  /jobs/{jobId}:
+    get:
+      tags: [dashboard]
+      summary: Job status
+      parameters: [{ name: jobId, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200':
+          description: Job
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Job' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+components:
+  parameters:
+    serial: { name: serial, in: path, required: true, schema: { type: string }, example: DP-PI-0F3A21 }
+    plantId: { name: plantId, in: path, required: true, schema: { type: string, pattern: '^[a-z0-9-]{3,40}$' } }
+  responses:
+    NotFound: { description: Not found }
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [serial]
+      properties:
+        serial: { type: string, example: DP-PI-0F3A21 }
+        image_version: { type: string, example: base-2.3.1 }
+    Heartbeat:
+      type: object
+      properties:
+        tailscale: { type: boolean }
+        ip: { type: string }
+        config_version: { type: integer, nullable: true, description: Version currently applied on the device }
+        health: { type: object, nullable: true, properties: { cpu_temp_c: {type: number}, mem_free_frac: {type: number}, buffered: {type: integer}, cycle_s: {type: number} } }
+    Device:
+      type: object
+      properties:
+        serial: { type: string }
+        pairing_code: { type: string, example: '482913' }
+        status: { type: string, enum: [unassigned, assigned, retired] }
+        plant_id: { type: string, nullable: true }
+        online: { type: boolean, description: Heartbeat within the last 90 s }
+        last_seen: { type: string, format: date-time, nullable: true }
+        tailscale: { type: boolean }
+        image_version: { type: string, nullable: true }
+        config_version: { type: integer, nullable: true }
+    Tag:
+      type: object
+      required: [name, address, type]
+      properties:
+        name: { type: string, pattern: '^[A-Za-z][A-Za-z0-9_:]*$', example: 'PH_AXTdd1_1:ADA_ADA', description: DigitalPaani standard tag name }
+        source: { type: string, default: plc, description: '"plc" or a serial device id' }
+        address: { type: integer, minimum: 0 }
+        type: { type: string, enum: [bool, bool_di, bool_bit, int16, uint16, int32, uint32, float32, float64], description: 'bool = coil (FC01), bool_di = discrete input (FC02), bool_bit = one bit of a holding register' }
+        bit: { type: integer, minimum: 0, maximum: 15, nullable: true, description: bool_bit only }
+        scale: { type: number, default: 1, description: Scaling_Factor }
+        unit: { type: string, nullable: true }
+        role: { type: string, enum: [value, counter, flow], default: value, description: 'flow: the device integrates the rate into <name>_total; counter: the register already totals' }
+        zero_below: { type: number, nullable: true, description: Flow-noise filter; values below are published as 0 }
+        totalizer: { type: boolean, deprecated: true, description: Legacy alias for role == counter }
+    Plc:
+      type: object
+      required: [ip]
+      properties:
+        ip: { type: string, format: ipv4 }
+        port: { type: integer, default: 502 }
+        unit_id: { type: integer, default: 1 }
+        word_order: { type: string, enum: [ABCD, CDAB, DCBA, BADC], default: ABCD }
+        max_address: { type: integer, nullable: true, description: Highest usable holding register }
+    SerialDevice:
+      type: object
+      required: [id, label, port, slave_id]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        port: { type: string, example: /dev/ttyUSB0 }
+        baud: { type: integer, default: 9600 }
+        parity: { type: string, enum: [N, E, O], default: N }
+        slave_id: { type: integer, minimum: 1, maximum: 247 }
+    PlantDraft:
+      type: object
+      required: [id, name, plc, tags]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        plc_id: { type: string, default: PLC-01 }
+        interval_s: { type: integer, default: 60, description: POLLING_INTERVAL }
+        topic: { type: string, nullable: true, description: 'Defaults to <id>/pub' }
+        debug: { type: boolean, default: false, description: DEBUG_OPTION on the device }
+        plc: { $ref: '#/components/schemas/Plc' }
+        serial: { type: array, items: { $ref: '#/components/schemas/SerialDevice' } }
+        tags: { type: array, items: { $ref: '#/components/schemas/Tag' } }
+    PlantSummary:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        plc_id: { type: string }
+        device_serial: { type: string, nullable: true }
+        config_version: { type: integer, nullable: true }
+        tag_count: { type: integer }
+    Poll:
+      type: object
+      properties:
+        source: { type: string }
+        fc: { type: integer, enum: [1, 2, 3], description: 1 coils, 2 discrete inputs, 3 holding registers }
+        start: { type: integer }
+        count: { type: integer }
+    Config:
+      type: object
+      description: What the device receives (the content of config.json). Never contains certificates. Carries both the structured sections and the flat keys the existing core/config_loader.py reads.
+      properties:
+        version: { type: integer }
+        plant_id: { type: string }
+        plc_id: { type: string }
+        publish:
+          type: object
+          properties:
+            topic: { type: string, example: hinargo-stp-45/pub }
+            control_topic: { type: string, example: hinargo-stp-45/control }
+            health_topic: { type: string, example: hinargo-stp-45/health }
+            interval_s: { type: integer }
+            buffer_on_disconnect: { type: boolean }
+            buffer_drain_per_cycle: { type: integer, default: 1 }
+        debug: { type: boolean }
+        sources: { type: object, additionalProperties: true }
+        polls: { type: array, items: { $ref: '#/components/schemas/Poll' } }
+        tags: { type: array, items: { $ref: '#/components/schemas/Tag' } }
+        PLANT_ID: { type: string }
+        PLC_ID: { type: string }
+        POLLING_INTERVAL: { type: integer }
+        MODBUS_HOST: { type: string }
+        MODBUS_PORT: { type: integer }
+        MQTT_TOPIC: { type: string }
+        DEBUG_OPTION: { type: boolean }
+        ANALOG_SENSORS: { type: array, items: { type: object, properties: { tag: {type: string}, start: {type: integer}, end: {type: integer}, data_type: {type: string, enum: [float, double, int, uint, dint, udint]}, word_order: {type: string}, Scaling_Factor: {type: number}, is_flow: {type: boolean}, is_counter: {type: boolean}, zero_below: {type: number, nullable: true} } } }
+        BOOLEAN_SENSORS: { type: array, items: { type: object, properties: { tag: {type: string}, address: {type: integer}, fc: {type: integer, enum: [1, 2, 3]}, bit_index: {type: integer, nullable: true} } } }
+    CompileResult:
+      type: object
+      properties:
+        config: { $ref: '#/components/schemas/Config' }
+        warnings: { type: array, items: { type: string } }
+        cycle_estimate_s: { type: number }
+    ValidationError:
+      type: object
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            properties:
+              row: { type: integer, nullable: true, description: Tag row index, or null for plant-level errors }
+              msg: { type: string }
+    Job:
+      type: object
+      properties:
+        id: { type: string }
+        serial: { type: string }
+        plant_id: { type: string }
+        config_version: { type: integer }
+        status: { type: string, enum: [queued, sent, applied, failed] }
+        message: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    Payload:
+      type: object
+      description: The flat site payload as published to <plant>/pub. Every key not listed here is a tag value (numbers; booleans as 0/1; null when the read failed). Flow-role tags add a <tag>_total key.
+      required: [plantId, plcId, TIMESTAMP]
+      properties:
+        plantId: { type: string }
+        plcId: { type: string }
+        TIMESTAMP: { type: string, format: date-time }
+        serial: { type: string, description: Added by the new agent; the deployed build omits it and the backend resolves the device from plantId }
+        config_version: { type: integer }
+        quality:
+          type: object
+          description: Per-tag read failures, tag name → reason
+          additionalProperties: { type: string }
+      additionalProperties: { oneOf: [{ type: number }, { type: boolean }, { type: 'null' }] }
+      example: { plantId: hinargo-stp-45, plcId: PLC-01, TIMESTAMP: '2026-11-13T09:00:00+00:00', 'PH_AXTdd1_1:ADA_ADA': 7.48, 'FMF_EQTdd1ssAXTdd1_1:ADA_ADA': 24.66, 'FMF_EQTdd1ssAXTdd1_1:ADA_ADA_total': 1832.4, 'ONOFF_AGT_1:ADA_ADA': 0 }

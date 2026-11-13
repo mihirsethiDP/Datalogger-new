@@ -1,0 +1,17 @@
+# runtime state
+*.log
+backend/provisioning.db
+agent/state/
+agent/certs/*.pem*
+*.db
+totalizer_data.json
+device_code.json
+provisioning_state.json
+__pycache__/
+*.pyc
+.venv/
+.claude/
+
+# raw recording transcript (public repo); extract.md keeps the relevant notes
+transcript.txt
+*.m4a

@@ -1,0 +1,728 @@
+<title>Datalogger Onboarding</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one centred working column, a five-step rail on top, a sticky footer with Back / Continue. Addresses and codes are set in mono. */
+:root{
+  --bg:#f1f4f2; --surface:#ffffff; --surface-2:#e8edeb; --fg:#15201c; --muted:#5d6b66; --line:#d3dbd8;
+  --accent:#0d6b5b; --accent-ink:#ffffff; --accent-soft:#dbeee8;
+  --ok:#1f8a4f; --ok-soft:#dff3e6; --warn:#a56d14; --warn-soft:#fbf0d8; --bad:#bf3b2f; --bad-soft:#fbe3df;
+  --code:#edf1ef; --shadow:0 1px 2px rgba(21,32,28,.06),0 8px 24px -16px rgba(21,32,28,.25);
+  --font:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --radius:10px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1513; --surface:#171e1b; --surface-2:#1f2825; --fg:#e4eae7; --muted:#95a39d; --line:#2b3632;
+  --accent:#4fc7a4; --accent-ink:#06211a; --accent-soft:#193a32;
+  --ok:#5ec784; --ok-soft:#173424; --warn:#e2ab4c; --warn-soft:#3a2d12; --bad:#ec7a6d; --bad-soft:#3f1f1b;
+  --code:#1b2320; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.6); color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0f1513; --surface:#171e1b; --surface-2:#1f2825; --fg:#e4eae7; --muted:#95a39d; --line:#2b3632;
+  --accent:#4fc7a4; --accent-ink:#06211a; --accent-soft:#193a32;
+  --ok:#5ec784; --ok-soft:#173424; --warn:#e2ab4c; --warn-soft:#3a2d12; --bad:#ec7a6d; --bad-soft:#3f1f1b;
+  --code:#1b2320; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.6); color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5;margin:0}
+.app{max-width:920px;margin:0 auto;padding-block:20px 120px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{margin:0;text-wrap:balance;font-weight:600}
+h1{font-size:20px}
+h2{font-size:18px}
+h3{font-size:14px;letter-spacing:.02em;text-transform:uppercase;color:var(--muted);font-weight:500}
+p{margin:0}
+a{color:var(--accent)}
+code,.mono{font-family:var(--mono);font-size:.92em}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .mark{width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--mono);font-weight:500;font-size:13px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--surface-2);font-size:13px;color:var(--muted)}
+.chip b{color:var(--fg);font-weight:500}
+
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:18px}
+.step{border:0;background:transparent;font:inherit;color:var(--muted);text-align:left;padding:8px 2px 10px;border-top:3px solid var(--line);cursor:pointer;border-radius:2px}
+.step .n{font-family:var(--mono);font-size:12px;display:block}
+.step .t{font-size:13px;font-weight:500;display:block;color:inherit}
+.step.done{border-top-color:var(--ok);color:var(--fg)}
+.step.active{border-top-color:var(--accent);color:var(--fg)}
+.step:disabled{cursor:default;opacity:.7}
+.step:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:22px}
+.panel>.head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:18px}
+.panel>.head p{max-width:62ch;color:var(--muted)}
+.section{display:grid;gap:14px;padding-block:18px;border-top:1px solid var(--line)}
+.section:first-of-type{border-top:0;padding-top:0}
+.section>.row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+
+.grid{display:grid;gap:14px}
+.grid.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.grid.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.field{display:grid;gap:5px;min-width:0;align-content:start}
+.field label{font-size:13px;font-weight:500}
+.field .hint{font-size:12.5px;color:var(--muted)}
+input[type=text],input[type=number],select,textarea{width:100%;font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 11px;min-width:0}
+textarea{font-family:var(--mono);font-size:13px;line-height:1.5;resize:vertical}
+input.mono,select.mono{font-family:var(--mono);font-size:14px}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+input[aria-invalid="true"],select[aria-invalid="true"]{border-color:var(--bad)}
+input[readonly]{background:var(--surface-2);color:var(--muted)}
+.check{display:flex;align-items:center;gap:8px;font-size:14px}
+.check input{width:16px;height:16px;accent-color:var(--accent)}
+
+.btn{font:inherit;font-weight:500;font-size:14px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:9px 14px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn.primary:disabled{opacity:.5;cursor:not-allowed;filter:none}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--accent)}
+.btn.ghost:hover{background:var(--accent-soft)}
+.btn.sm{padding:6px 10px;font-size:13px}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.icon{padding:6px 8px;color:var(--muted);border-color:transparent}
+.btn.icon:hover{color:var(--bad);background:var(--bad-soft)}
+
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:inherit;font-size:13.5px;font-weight:500;border:0;background:transparent;color:var(--muted);padding:7px 12px;cursor:pointer}
+.seg button.on{background:var(--accent-soft);color:var(--accent)}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+.devices{display:grid;gap:10px}
+.device{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%}
+.device:hover{border-color:var(--accent)}
+.device.on{border-color:var(--accent);background:var(--accent-soft)}
+.device:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.device .dot{width:10px;height:10px;border-radius:50%;background:var(--ok)}
+.device .dot.off{background:var(--muted);opacity:.5}
+.device .sn{font-family:var(--mono);font-weight:500}
+.device .meta{font-size:13px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+.device .code{font-family:var(--mono);font-size:18px;letter-spacing:.08em;font-weight:500;text-align:right}
+.device .code small{display:block;font-family:var(--font);font-size:11px;letter-spacing:.04em;color:var(--muted);text-transform:uppercase}
+details{border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px}
+details summary{cursor:pointer;font-weight:500;font-size:14px}
+details ol{margin:8px 0 0;padding-left:20px;display:grid;gap:4px;font-size:14px}
+
+.pill{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:500;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.accent{background:var(--accent-soft);color:var(--accent)}
+
+.note{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:8px;font-size:14px;background:var(--surface-2)}
+.note.ok{background:var(--ok-soft);color:var(--ok)}
+.note.warn{background:var(--warn-soft);color:var(--warn)}
+.note.bad{background:var(--bad-soft);color:var(--bad)}
+.note b{font-weight:600}
+.note .i{font-family:var(--mono);font-weight:500;flex:none}
+
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:14px}
+#tagTable{min-width:1000px}
+#tagTable select[data-tk="type"]{min-width:200px}
+th{font-size:12px;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);font-weight:500;text-align:left;padding:10px 10px;background:var(--surface-2)}
+td{padding:6px 6px;border-top:1px solid var(--line);vertical-align:middle}
+td input,td select{padding:7px 9px;border-radius:6px}
+td.num input{font-variant-numeric:tabular-nums}
+tr.err td{background:var(--bad-soft)}
+.serial-row{display:grid;grid-template-columns:1.4fr 1fr .8fr .7fr .6fr auto;gap:8px;align-items:end}
+.serial-row .field label{font-size:12px;color:var(--muted)}
+
+.issues{display:grid;gap:6px}
+.blocks{display:grid;gap:6px;font-size:14px}
+.block{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:8px}
+.block .src{font-weight:500}
+.block .rng{font-family:var(--mono);font-size:13px;color:var(--muted)}
+
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:14px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-weight:500;min-width:0;overflow-wrap:anywhere}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.card{border:1px solid var(--line);border-radius:var(--radius);padding:14px;display:grid;gap:10px;align-content:start}
+.card h3{margin-bottom:2px}
+pre{background:var(--code);border-radius:8px;padding:12px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.5;margin:0}
+
+.timeline{display:grid;gap:8px}
+.tl{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:center;font-size:14px;color:var(--muted)}
+.tl .m{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:11px}
+.tl.done{color:var(--fg)}
+.tl.done .m{background:var(--ok);border-color:var(--ok);color:#fff}
+.tl.live .m{border-color:var(--accent);animation:pulse 1.2s infinite}
+.tl.wait .m{border-color:var(--warn)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--accent-soft)}50%{box-shadow:0 0 0 6px var(--accent-soft)}}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.tile{border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.tile .v{font-family:var(--mono);font-size:20px;font-weight:500;font-variant-numeric:tabular-nums}
+.tile .u{font-size:12px;color:var(--muted);margin-left:3px}
+.tile .n{font-size:12.5px;color:var(--muted)}
+
+.decoder{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px;border:1px dashed var(--line);border-radius:var(--radius)}
+.decoder .out{display:grid;gap:4px;font-size:14px;align-content:start}
+.decoder .out div{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 8px;border-radius:6px}
+.decoder .out div.pick{background:var(--accent-soft)}
+.decoder .out div.match{outline:2px solid var(--ok)}
+.decoder .out code{font-size:14px}
+
+/* tooltips: a small "?" that explains a term on hover or keyboard focus; the text is also the aria-label */
+.tip{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;border:1px solid var(--line);background:var(--surface-2);color:var(--muted);font:600 11px/1 var(--font);cursor:help;position:relative;vertical-align:-2px;margin-left:5px;padding:0}
+.tip::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);width:max-content;max-width:min(300px,80vw);background:var(--fg);color:var(--bg);padding:8px 10px;border-radius:8px;font-size:12.5px;font-weight:400;line-height:1.4;text-align:left;white-space:normal;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .15s;z-index:7}
+.tip::after{display:none}
+.tip:hover::after,.tip:focus-visible::after{display:block;opacity:1}
+body{overflow-x:hidden}
+.tip:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+th small{display:block;font-size:11px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted);margin-top:1px}
+details.tech{border-style:dashed}
+details.help summary{color:var(--accent)}
+.ready{display:grid;gap:8px;margin-top:8px}
+.ready label{display:flex;gap:10px;align-items:flex-start;font-size:14px;cursor:pointer}
+.ready input{margin-top:3px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+.bitmap{display:grid;gap:12px}
+.bitreg{display:grid;gap:5px}
+.bitreg .cells{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:3px}
+.bitreg .cell{aspect-ratio:1;border:1px solid var(--line);border-radius:4px;font:500 10px/1 var(--mono);display:grid;place-items:center;color:var(--muted);min-width:0}
+.bitreg .cell.used{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.bitreg .cell.clash{background:var(--bad-soft);color:var(--bad);border-color:var(--bad)}
+.bitreg .legend{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.bitreg .legend b{font-family:var(--mono);font-weight:500;color:var(--fg)}
+.whichtype{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px 18px;font-size:14px;margin-top:8px}
+.whichtype div{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:baseline}
+.whichtype b{font-family:var(--mono);font-weight:500;font-size:13px;white-space:nowrap}
+
+footer.bar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));z-index:5}
+footer.bar .in{max-width:920px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
+footer.bar .status{font-size:13px;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 14px;border-radius:8px;font-size:13.5px;box-shadow:var(--shadow);z-index:6;transition:opacity .25s}
+.toast[hidden]{display:none}
+
+@media (max-width:680px){
+  .grid.c2,.grid.c3,.grid.c4,.cards,.decoder{grid-template-columns:1fr}
+  .serial-row{grid-template-columns:1fr 1fr}
+  .steps{gap:4px}
+  .step .t{display:none}
+  .device{grid-template-columns:auto 1fr}
+  .device .code{grid-column:2;text-align:left}
+  .panel{padding:16px}
+}
+@media (prefers-reduced-motion:reduce){.tl.live .m{animation:none}}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand"><div class="mark">DL</div><div><h1>Datalogger Onboarding</h1><p class="small muted">Connect a plant's Pi to the cloud in five steps. No programming, nothing typed on the Pi.</p></div></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><a class="chip" id="guideLink" href="guide.html" style="text-decoration:none">Guide</a><a class="chip" id="e2eLink" href="e2e.html" style="text-decoration:none">Walkthrough</a><div class="chip" id="ctxChip">Example data · <b>edit freely</b></div></div>
+  </header>
+
+  <nav class="steps" id="steps" aria-label="Steps"></nav>
+
+  <main class="panel" id="panel"></main>
+</div>
+
+<footer class="bar"><div class="in">
+  <button class="btn" id="backBtn">Back</button>
+  <div class="status" id="footStatus"></div>
+  <button class="btn primary" id="nextBtn">Continue</button>
+</div></footer>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+'use strict';
+/* ---------- reference data (examples) ---------- */
+let DEVICES = [
+  {serial:'DP-PI-0F3A21', code:'482913', online:true,  seen:'2 min ago', tailscale:true,  image:'base-2.3.1'},
+  {serial:'DP-PI-0F3A19', code:'117640', online:true,  seen:'just now',  tailscale:true,  image:'base-2.3.1'},
+  {serial:'DP-PI-0F3A22', code:'905218', online:false, seen:'3 h ago',   tailscale:false, image:'base-2.2.0'},
+];
+let ASSIGNED = [
+  {serial:'DP-PI-0F3A07', code:'330118', online:true,  seen:'just now', tailscale:true, image:'base-2.3.1'},
+  {serial:'DP-PI-0F3A11', code:'771202', online:false, seen:'2 d ago',  tailscale:true, image:'base-2.2.0'},
+];
+let PLANTS = [
+  {id:'welspun-stp-01', name:'Welspun STP 1.2 MLD', plcId:'PLC-01', ip:'192.168.10.20', deviceSerial:'DP-PI-0F3A07', version:3, tags:[
+    {name:'PH_AXTdd1_1:ADA_ADA', src:'plc', addr:1000, type:'float32', bit:'', scale:1, unit:'pH', role:'value', zero:''},
+    {name:'DO_ATdd1_1:ADA_ADA', src:'plc', addr:1200, type:'float32', bit:'', scale:1, unit:'mg/L', role:'value', zero:''},
+    {name:'FMF_EQTdd1_1:ADA_ADA',  src:'plc', addr:1400, type:'float32', bit:'', scale:1, unit:'m3/h', role:'flow', zero:'0.5'},
+  ]},
+  {id:'twm-pump-house', name:'TWM Pump House', plcId:'PLC-01', ip:'10.8.0.5', deviceSerial:'DP-PI-0F3A11', version:1, tags:[
+    {name:'FMF_MAIN_1:ADA', src:'plc', addr:1400, type:'float32', bit:'', scale:1, unit:'m3/h', role:'flow', zero:'1'},
+    {name:'FMT_MAIN_1:ADA', src:'plc', addr:1402, type:'uint32', bit:'', scale:1, unit:'m3', role:'counter', zero:''},
+  ]},
+];
+/* Types are shown in plain words first, with the PLC programmer's word after, so either vocabulary finds the right row. */
+const TYPES = {
+  float32:{regs:2,group:'Numbers',label:'Decimal (REAL)',short:'REAL'}, float64:{regs:4,group:'Numbers',label:'Decimal, 64-bit (DOUBLE)',short:'DOUBLE'},
+  int16:{regs:1,group:'Numbers',label:'Whole number (INT)',short:'INT'}, uint16:{regs:1,group:'Numbers',label:'Whole number ≥ 0 (UINT)',short:'UINT'},
+  int32:{regs:2,group:'Numbers',label:'Large whole number (DINT)',short:'DINT'}, uint32:{regs:2,group:'Numbers',label:'Large whole number ≥ 0 (UDINT)',short:'UDINT'},
+  bool:{regs:1,group:'On / off',label:'On/off: coil (M, Y)',short:'coil',space:'coil'}, bool_di:{regs:1,group:'On / off',label:'On/off: input (X)',short:'input',space:'discrete'}, bool_bit:{regs:1,group:'On / off',label:'On/off: bit in a register',short:'bit',space:'reg'}};
+const isBool = t=>t.startsWith('bool');
+const ROLES = {value:'Use as it is', counter:'Already a running total', flow:'A rate · make a running total'};
+const ORDERS = {ABCD:'ABCD · most PLCs', CDAB:'CDAB · words swapped', DCBA:'DCBA · fully reversed', BADC:'BADC · bytes swapped'};
+const SPACE_LABEL = {coil:'coils', discrete:'inputs', reg:'registers'};
+const tip = t=>`<button type="button" class="tip" data-tip="${esc(t)}" aria-label="${esc(t)}">?</button>`;
+function typeOptions(sel){ const groups={}; for(const [k,v] of Object.entries(TYPES)){ (groups[v.group]??=[]).push(`<option value="${k}" ${sel===k?'selected':''}>${v.label}</option>`); } return Object.entries(groups).map(([g,o])=>`<optgroup label="${g}">${o.join('')}</optgroup>`).join(''); }
+const HOP_S = 6;        // observed: ~6 s needed between serial devices on one converter
+const LIMIT = {coil:2000, discrete:2000, reg:125};   // Modbus per-request limits
+const FCS = {coil:1, discrete:2, reg:3};
+const GAP_MERGE = 10;   // read across small gaps instead of issuing another request
+
+function sample(){ return {
+  step:0, device:null, mode:'new', fromPlant:'', editVersion:0,
+  plant:{name:'Hinargo STP 4.5 MLD', id:'hinargo-stp-45', idManual:false, plcId:'PLC-01', interval:10, debug:false},
+  plc:{ip:'192.168.1.10', port:502, unit:1, order:'ABCD', maxAddr:''},
+  serial:[
+    {id:'s1', label:'Energy meter 1', port:'/dev/ttyUSB0', baud:9600, parity:'N', slave:1},
+    {id:'s2', label:'MLSS probe',     port:'/dev/ttyUSB0', baud:9600, parity:'N', slave:5},
+  ],
+  tags:[
+    {name:'PH_AXTdd1_1:ADA_ADA',   src:'plc', addr:1000, type:'float32', bit:'', scale:1,   unit:'pH',   role:'value',   zero:''},
+    {name:'DO_ATdd1_1:ADA_ADA',    src:'plc', addr:1200, type:'float32', bit:'', scale:1,   unit:'mg/L', role:'value',   zero:''},
+    {name:'FMF_EQTdd1_1:ADA_ADA',  src:'plc', addr:1400, type:'float32', bit:'', scale:1,   unit:'m3/h', role:'flow',    zero:'0.5'},
+    {name:'LT_EQTdd1_1:ADA_ADA',   src:'plc', addr:1600, type:'int16',   bit:'', scale:0.1, unit:'m',    role:'value',   zero:''},
+    {name:'ONOFF_BLW_1:ADA_ADA',   src:'plc', addr:2001, type:'bool',    bit:'', scale:1,   unit:'',     role:'value',   zero:''},
+    {name:'TRP_BLW_1:ADA_ADA',     src:'plc', addr:3000, type:'bool_bit',bit:'0',scale:1,   unit:'',     role:'value',   zero:''},
+    {name:'TRP_BLW_2:ADA_ADA',     src:'plc', addr:3000, type:'bool_bit',bit:'1',scale:1,   unit:'',     role:'value',   zero:''},
+    {name:'EM1_kWh',               src:'s1',  addr:100,  type:'uint32',  bit:'', scale:0.1, unit:'kWh',  role:'counter', zero:''},
+    {name:'MLSS_ATdd1_1:ADA_ADA',  src:'s2',  addr:0,    type:'float32', bit:'', scale:1,   unit:'mg/L', role:'value',   zero:''},
+  ],
+  pushed:null,
+};}
+
+function blank(){ const s=sample(); s.plant={name:'',id:'',idManual:false,plcId:'PLC-01',interval:60,debug:false}; s.plc.ip=''; s.serial=[]; s.tags=[]; return s; }
+let S = sample(); let hadDraft=false;
+try{ const d = localStorage.getItem('dl-onboarding-draft'); if(d){ const o = JSON.parse(d); if(o && o.tags){ S = Object.assign(sample(), o, {pushed:null}); hadDraft=true; } } }catch(e){}
+function save(){ try{ localStorage.setItem('dl-onboarding-draft', JSON.stringify(S)); }catch(e){} }
+
+/* ---------- helpers ---------- */
+const $ = (s,el=document)=>el.querySelector(s);
+const $$ = (s,el=document)=>[...el.querySelectorAll(s)];
+const esc = s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const slug = s=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);
+const fmtCode = c=>c.slice(0,3)+' '+c.slice(3);
+const isIp = v=>/^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/.test(v);
+function topic(){ return `${S.plant.id||'plant'}/pub`; }
+const findDevice=s=>s?(DEVICES.find(x=>x.serial===s)||ASSIGNED.find(x=>x.serial===s)):undefined;
+const HELP={
+  0:['Click the Pi in the list, or type the 6‑digit device code from its small screen. That code is the only thing anyone on site needs to read out to you.','An offline Pi is fine: finish the setup now and it picks the config up when it reconnects.','To change a plant that is already sending data, pick it from the list at the bottom instead.'],
+  1:['Only the plant name is required. The Plant ID is made from it and becomes the plant\'s address in the cloud, so check the spelling now: it cannot change after the first push.','One Pi reads one PLC. A plant with two PLCs is set up twice, with PLC‑01 and PLC‑02.','Every 60 seconds is the standard. Shorter only when the process really needs it.'],
+  2:['You need the PLC\'s IP address on the plant network. Port and unit ID are almost always the defaults already filled in.','Meters and probes wired to the Pi\'s USB converter are listed here with the address, speed and parity set on the meter itself.','Leave the number format on ABCD. If decimals later come out as nonsense, the Tags step has a finder that works out the right one from a single known value.'],
+  3:['Fastest: Import CSV with the PLC programmer\'s tag list. Rows with problems are shown and skipped; the rest come in.','Type is what the PLC stores at the address: a decimal, a whole number, or an on/off. The type decides how many registers the tag uses; the next tag must start after them.','Several on/off tags can share one register when they are “one bit inside a register”, each with its own bit number 0–15. The picture under the table shows them.','“A rate · make a running total” makes the Pi add the flow up into <tag>_total, which never decreases and survives restarts. “Zero below” silences flow noise when pumps are off.'],
+  4:['Nothing reaches the Pi until you press Push. Every pushed version is kept on the server, so a change can always be undone by pushing again.','If the Pi reports a problem, the message names the step to fix. Fix it and press Try again.','Once the first values arrive they refresh every few seconds, so you can see the plant from here.'],
+};
+function helpBox(step){ return `<details class="help"><summary>How this step works</summary><ul style="margin:8px 0 2px;padding-left:20px;font-size:14px;display:grid;gap:4px">${HELP[step].map(h=>`<li>${h}</li>`).join('')}</ul></details>`; }
+function srcLabel(src){ if(src==='plc') return 'PLC'; const d=S.serial.find(x=>x.id===src); return d? (d.label||'unnamed meter') : 'missing meter'; }
+let toastT; function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true,2200); }
+function copy(text){ const done=()=>toast('Copied'); if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done).catch(()=>fallback()); } else fallback(); function fallback(){ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');done();}catch(e){toast('Select and copy manually');} ta.remove(); } }
+
+/* ---------- validation ---------- */
+function tagIssues(){
+  const errs=[], warns=[];
+  const names=new Map(), occ=new Map(), bits=new Set();
+  const max = S.plc.maxAddr===''?null:Number(S.plc.maxAddr);
+  S.tags.forEach((t,i)=>{
+    const row = i+1; const label = t.name? `“${t.name}”` : `row ${row}`;
+    if(!t.name) errs.push({row:i, msg:`Row ${row}: the tag has no name yet.`});
+    else if(!/^[A-Za-z][A-Za-z0-9_:]*$/.test(t.name)) errs.push({row:i, msg:`${label}: a tag name uses letters, digits, “_” and “:” only, and starts with a letter. No spaces.`});
+    else { const k=t.name.toLowerCase(); if(names.has(k)) errs.push({row:i, msg:`${label} appears twice (rows ${names.get(k)+1} and ${row}). Each tag needs its own name.`}); else names.set(k,i); }
+    if(t.src!=='plc' && !S.serial.find(d=>d.id===t.src)) errs.push({row:i, msg:`${label}: the meter it was read from was removed on the Connections step. Pick another source.`});
+    const a = Number(t.addr);
+    if(t.addr===''||!Number.isInteger(a)||a<0) { errs.push({row:i, msg:`${label}: the address must be a whole number, 0 or more.`}); return; }
+    const ty = TYPES[t.type]; const span = ty.regs; const space = ty.space||'reg';
+    if(t.type==='bool_bit'){ const b=Number(t.bit); if(t.bit===''||!Number.isInteger(b)||b<0||b>15) errs.push({row:i, msg:`${label}: a bit inside a register needs a bit number from 0 to 15.`}); else { const bk=`${t.src}|${a}|${b}`; if(bits.has(bk)) errs.push({row:i, msg:`${label}: bit ${b} of register ${a} is already taken by another tag. See the picture below the table.`}); bits.add(bk); } }
+    if(max!==null && space==='reg' && a+span-1>max) errs.push({row:i, msg:`${label}: at ${a} it uses registers ${a}–${a+span-1}, beyond the PLC's highest usable register (${max}).`});
+    for(let k=0;k<span;k++){ const key=`${t.src}|${space}|${a+k}`; const o=occ.get(key); if(!o){ occ.set(key,{i,name:t.name,type:t.type,addr:a}); continue; } if(o.type==='bool_bit'&&t.type==='bool_bit') continue; errs.push({row:i, msg:`${label} at ${a} overlaps ${o.name? '“'+o.name+'”':'row '+(o.i+1)}: a ${TYPES[o.type].short} at ${o.addr} uses ${o.addr}–${o.addr+TYPES[o.type].regs-1}. Move one of them, or check the type.`}); break; }
+    if(Number(t.scale)===0||isNaN(Number(t.scale))) errs.push({row:i, msg:`${label}: scale must be a number other than 0 (1 means “as it is”).`});
+    if(t.zero!==''&&isNaN(Number(t.zero))) errs.push({row:i, msg:`${label}: “zero below” must be a number, or left empty.`});
+    if(t.role==='counter' && (isBool(t.type)||t.type.startsWith('float'))) warns.push({row:i, msg:`${label}: running totals are normally DINT or UDINT. As a ${TYPES[t.type].short} it may wrap around or lose digits.`});
+    if(t.role==='flow' && isBool(t.type)) errs.push({row:i, msg:`${label}: an on/off cannot be a flow rate.`});
+    if(t.zero!=='' && isBool(t.type)) warns.push({row:i, msg:`${label}: “zero below” does nothing for an on/off.`});
+  });
+  if(S.tags.length===0) errs.push({row:-1,msg:'Add at least one tag, or import the PLC programmer\'s CSV.'});
+  return {errs,warns};
+}
+function serialIssues(){
+  const errs=[]; const seen=new Map();
+  S.serial.forEach((d,i)=>{
+    if(!d.label) errs.push(`Meter ${i+1}: give it a name you will recognise later (e.g. “Energy meter 1”).`);
+    const s=Number(d.slave); if(!Number.isInteger(s)||s<1||s>247) errs.push(`${d.label||'Meter '+(i+1)}: the address must be 1–247.`);
+    const k=`${d.port}|${s}`; if(seen.has(k)) errs.push(`${d.label||'Meter '+(i+1)} and ${seen.get(k)} both have address ${s} on the same converter. Change one of them on the device itself.`); else seen.set(k,d.label||'meter '+(i+1));
+  });
+  return errs;
+}
+function plcIssues(){ const e=[]; if(!isIp(S.plc.ip)) e.push(S.plc.ip?'The PLC IP address is not valid. It looks like 192.168.1.10: four numbers 0–255 with dots.':'Enter the PLC\'s IP address (looks like 192.168.1.10).'); const p=Number(S.plc.port); if(!Number.isInteger(p)||p<1||p>65535) e.push('Port must be 1–65535 (usually 502).'); const u=Number(S.plc.unit); if(!Number.isInteger(u)||u<0||u>255) e.push('Unit ID must be 0–255 (usually 1).'); if(S.plc.maxAddr!==''&&(!Number.isInteger(Number(S.plc.maxAddr))||Number(S.plc.maxAddr)<0)) e.push('Highest usable register must be a whole number.'); return e; }
+
+/* ---------- poll plan ---------- */
+function buildBlocks(){
+  const groups=new Map();
+  S.tags.forEach(t=>{ const a=Number(t.addr); if(!Number.isInteger(a)||a<0) return; const ty=TYPES[t.type]; if(!ty) return; const space=ty.space||'reg'; const k=`${t.src}|${space}`; if(!groups.has(k)) groups.set(k,[]); groups.get(k).push({start:a,end:a+ty.regs-1}); });
+  const blocks=[];
+  for(const [k,ranges] of groups){ const [src,space]=k.split('|'); ranges.sort((x,y)=>x.start-y.start); const limit=LIMIT[space];
+    let cur=null; for(const r of ranges){ if(cur && r.start-cur.end-1<=GAP_MERGE && r.end-cur.start+1<=limit){ cur.end=Math.max(cur.end,r.end); cur.n++; } else { cur={src,space,start:r.start,end:r.end,n:1}; blocks.push(cur);} }
+  }
+  // split anything that still exceeds the per-request limit
+  const out=[]; for(const b of blocks){ const limit=LIMIT[b.space]; let s=b.start; while(b.end-s+1>limit){ out.push({...b,start:s,end:s+limit-1,split:true}); s+=limit; } out.push({...b,start:s,split:b.start!==s}); }
+  return out;
+}
+function cycleEstimate(){
+  const blocks=buildBlocks(); const plcBlocks=blocks.filter(b=>b.src==='plc').length; const serialDevs=new Set(blocks.filter(b=>b.src!=='plc').map(b=>b.src)).size; const serialBlocks=blocks.length-plcBlocks;
+  const plcS = plcBlocks*0.05; const serialS = serialDevs>0 ? (serialDevs-1)*HOP_S + serialBlocks*0.3 : 0;
+  return {plcBlocks, serialDevs, serialBlocks, total: Math.max(plcS, serialS), serialS};
+}
+
+/* ---------- float decoding ---------- */
+function decode(hi,lo,order){ const dv=new DataView(new ArrayBuffer(4)); let a=hi&0xffff, b=lo&0xffff; const swap=w=>((w&0xff)<<8)|(w>>8);
+  if(order==='CDAB'){ [a,b]=[b,a]; } else if(order==='DCBA'){ [a,b]=[swap(b),swap(a)]; } else if(order==='BADC'){ a=swap(a); b=swap(b); }
+  dv.setUint16(0,a); dv.setUint16(2,b); return {f:dv.getFloat32(0), i:dv.getInt32(0)}; }
+function parseReg(v){ v=String(v).trim(); if(/^0x[0-9a-f]+$/i.test(v)) return parseInt(v,16); if(/^\d+$/.test(v)) return Number(v); return NaN; }
+
+/* ---------- CSV ---------- */
+function parseCsv(text){
+  const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean); if(!lines.length) return {rows:[],error:'Nothing to import.'};
+  const delim = [',','\t',';'].sort((a,b)=>lines[0].split(b).length-lines[0].split(a).length)[0];
+  const cells=l=>l.split(delim).map(c=>c.trim().replace(/^"|"$/g,''));
+  let head=cells(lines[0]).map(h=>h.toLowerCase()); let start=1;
+  const hasHead = head.includes('tag')||head.includes('address')||head.includes('name');
+  if(!hasHead){ head=['tag','address','type','scale','unit','source','totalizer']; start=0; }
+  const col=n=>head.findIndex(h=>n.includes(h));
+  const ci={tag:col(['tag','name']), addr:col(['address','addr','register','start']), type:col(['type','datatype','data_type']), bit:col(['bit','bit_index']), scale:col(['scale','scaling_factor','multiplier','factor']), unit:col(['unit','units']), src:col(['source','device']), role:col(['role','kind']), tot:col(['totalizer','totaliser','is_counter','counter']), flow:col(['is_flow','flow']), zero:col(['zero_below','threshold','min'])};
+  if(ci.tag<0||ci.addr<0) return {rows:[],error:`Could not find “tag” and “address” columns. Found: ${head.join(', ')}.`};
+  const yes=v=>/^(1|true|yes|y)$/i.test(v);
+  const normType=s=>{ s=(s||'float32').toLowerCase().trim(); const m={real:'float32',float:'float32',float32:'float32',double:'float64',float64:'float64',lreal:'float64',int:'int16',integer:'int16',int16:'int16',uint:'uint16',word:'uint16',uint16:'uint16',dint:'int32',long:'int32',int32:'int32',udint:'uint32',dword:'uint32',uint32:'uint32',bool:'bool',boolean:'bool',coil:'bool',di:'bool_di',discrete:'bool_di',discrete_input:'bool_di',bit:'bool_bit',packed:'bool_bit',bool_bit:'bool_bit',bool_di:'bool_di'}; return m[s]||s; };
+  const rows=[];
+  for(let i=start;i<lines.length;i++){ const c=cells(lines[i]); const g=k=>ci[k]>=0?(c[ci[k]]??''):'';
+    let type=normType(g('type')); let bit=g('bit'); if(type==='bool'&&bit!==''){ type='bool_bit'; }
+    const roleRaw=(g('role')||'').toLowerCase(); const role= roleRaw==='flow'||yes(g('flow'))?'flow': roleRaw==='counter'||yes(g('tot'))?'counter':'value';
+    const r={name:g('tag'), addr:g('addr'), type, bit, scale:g('scale')||'1', unit:g('unit'), src:g('src'), role, zero:g('zero'), problems:[]};
+    if(!r.name) r.problems.push('no tag'); if(!/^\d+$/.test(r.addr)) r.problems.push('address not a number'); if(!TYPES[r.type]) r.problems.push(`unknown type “${r.type}”`); if(r.type==='bool_bit'&&!/^(1[0-5]|[0-9])$/.test(r.bit)) r.problems.push('bit must be 0–15');
+    if(r.src && r.src.toLowerCase()!=='plc'){ const d=S.serial.find(x=>x.label.toLowerCase()===r.src.toLowerCase()); if(d) r.src=d.id; else r.problems.push(`unknown device “${r.src}”`); } else r.src='plc';
+    rows.push(r);
+  }
+  return {rows,error:null};
+}
+
+/* ---------- config ---------- */
+function buildConfig(){
+  const sources={plc:{type:'modbus_tcp',host:S.plc.ip,port:Number(S.plc.port),unit_id:Number(S.plc.unit),word_order:S.plc.order}};
+  S.serial.forEach(d=>sources[d.id]={type:'modbus_rtu',label:d.label,port:d.port,baud:Number(d.baud),parity:d.parity,slave_id:Number(d.slave),word_order:'ABCD',inter_device_delay_s:HOP_S});
+  const tags=S.tags.map(t=>({name:t.name,source:t.src,address:Number(t.addr),type:t.type,bit:t.type==='bool_bit'?Number(t.bit):null,scale:Number(t.scale),unit:t.unit||null,role:t.role||'value',zero_below:t.zero===''?null:Number(t.zero)}));
+  return {version:1, plant_id:S.plant.id, plc_id:S.plant.plcId, device:{serial:S.device},
+    publish:{topic:topic(),control_topic:`${S.plant.id}/control`,health_topic:`${S.plant.id}/health`,interval_s:Number(S.plant.interval),buffer_on_disconnect:true,buffer_drain_per_cycle:1}, debug:!!S.plant.debug,
+    sources, polls:buildBlocks().map(b=>({source:b.src,fc:FCS[b.space],start:b.start,count:b.end-b.start+1})), tags,
+    PLANT_ID:S.plant.id, PLC_ID:S.plant.plcId, POLLING_INTERVAL:Number(S.plant.interval), MODBUS_HOST:S.plc.ip, MODBUS_PORT:Number(S.plc.port), MQTT_TOPIC:topic(), DEBUG_OPTION:!!S.plant.debug,
+    ANALOG_SENSORS:tags.filter(t=>!isBool(t.type)).map(t=>({tag:t.name,source:t.source,start:t.address,end:t.address+TYPES[t.type].regs-1,data_type:{int16:'int',uint16:'uint',int32:'dint',uint32:'udint',float32:'float',float64:'double'}[t.type],word_order:t.source==='plc'?S.plc.order:'ABCD',Scaling_Factor:t.scale,is_flow:t.role==='flow',is_counter:t.role==='counter',zero_below:t.zero_below})),
+    BOOLEAN_SENSORS:tags.filter(t=>isBool(t.type)).map(t=>({tag:t.name,source:t.source,address:t.address,fc:FCS[TYPES[t.type].space],bit_index:t.bit}))};
+}
+
+/* ---------- rendering ---------- */
+const STEPS=[['1','Device'],['2','Plant'],['3','Connections'],['4','Tags'],['5','Review & push']];
+function stepOk(i){ if(i===0) return !!S.device; if(i===1) return !!S.plant.name && !!S.plant.id; if(i===2) return plcIssues().length===0 && serialIssues().length===0; if(i===3) return tagIssues().errs.length===0; return true; }
+
+function render(){ renderSteps(); renderPanel(); renderFooter(); save(); window.scrollTo({top:0}); }
+function renderSteps(){ $('#steps').innerHTML=STEPS.map((s,i)=>`<button class="step ${i===S.step?'active':''} ${i<S.step&&stepOk(i)?'done':''}" data-go="${i}" ${i>S.step&&!canReach(i)?'disabled':''}><span class="n">${s[0]}${i<S.step&&stepOk(i)?' ✓':''}</span><span class="t">${s[1]}</span></button>`).join('');
+  $$('#steps .step').forEach(b=>b.onclick=()=>{ S.step=Number(b.dataset.go); render(); }); }
+function canReach(i){ for(let k=0;k<i;k++) if(!stepOk(k)) return false; return true; }
+function renderFooter(){ const back=$('#backBtn'), next=$('#nextBtn'), st=$('#footStatus'); back.style.visibility=S.step===0?'hidden':'visible'; back.onclick=()=>{S.step--;render();};
+  if(S.step===4){ const p=S.pushed; next.textContent=!p?'Push config to device': p.stage===-1?'Try again':'Done'; next.disabled=!stepOk(3)||plcIssues().length>0||!!(p&&p.stage>=0&&p.stage<3); next.onclick=()=>{ if(p&&p.stage===-1){ S.pushed=null; push(); } else if(p){ toast('Config is on the device. Edit any step to push a new version.'); } else push(); }; }
+  else { next.textContent='Continue'; next.disabled=!stepOk(S.step); next.onclick=()=>{S.step++;render();}; }
+  const msg={0:S.device?`${S.device} selected`:'Pick the Pi, or type its device code',1:S.plant.name?`${S.plant.name} · ${topic()}`:'Give the plant a name',2:plcIssues().concat(serialIssues())[0]||'Connection details look right',3:(()=>{const t=tagIssues();return t.errs.length?`${t.errs.length} thing${t.errs.length>1?'s':''} to fix above`:`${S.tags.length} tag${S.tags.length>1?'s':''} · ${buildBlocks().length} read${buildBlocks().length>1?'s':''} per cycle`})(),4:S.pushed?'Pushed':'Everything is ready'}[S.step]; st.textContent=msg; }
+
+const STEP_REFRESH=[()=>refreshDevice(),()=>refreshPlant(),()=>refreshConn(),()=>refreshTags(),()=>{ if(S.pushed) drawTimeline(); }];
+function renderPanel(){ const p=$('#panel'); p.innerHTML=[stepDevice,stepPlant,stepConn,stepTags,stepReview][S.step](); bindPanel(); STEP_REFRESH[S.step]?.(); }
+
+function bindPanel(){
+  $$('[data-bind]').forEach(el=>{ const path=el.dataset.bind.split('.'); const get=()=>path.reduce((o,k)=>o[k],S); el.type==='checkbox'? el.checked=!!get() : el.value=get();
+    el.addEventListener('input',()=>{ let o=S; for(let i=0;i<path.length-1;i++) o=o[path[i]]; o[path[path.length-1]]= el.type==='checkbox'?el.checked:el.value; if(el.dataset.bind==='plant.name'&&!S.plant.idManual){ S.plant.id=slug(S.plant.name); const idEl=$('[data-bind="plant.id"]'); if(idEl) idEl.value=S.plant.id; } if(el.dataset.bind==='plant.id') S.plant.idManual=true; refresh(); }); });
+  $$('[data-copy]').forEach(b=>b.onclick=()=>copy(b.dataset.copy));
+}
+function refresh(){ save(); STEP_REFRESH[S.step]?.(); renderFooter(); renderSteps(); }
+
+/* step 1 */
+function stepDevice(){ return `
+  <div class="head"><div><h2>Which Pi are you setting up?</h2><p>A Pi appears here by itself once it has power and internet. Nothing is typed on the Pi.</p></div></div>
+  ${helpBox(0)}
+  <details ${S.device||S.tags.length?'':'open'}><summary>What you need before you start</summary>
+    <div class="ready">
+      <label><input type="checkbox"> The Pi is powered and connected to the site router with an Ethernet cable.</label>
+      <label><input type="checkbox"> The PLC's IP address on the plant network (from the PLC programmer or integrator).</label>
+      <label><input type="checkbox"> The PLC programmer's tag list: tag name, address, type for each value. ${tip('A CSV file or spreadsheet. The Tags step imports it directly. Wiring drawings and IO lists do not contain Modbus addresses.')}</label>
+      <label><input type="checkbox"> For any meter or probe wired to the Pi: its address, speed and parity (from the person who wired it). ${tip('Shown as Slave ID, baud rate and parity in the meter\'s own menu. Typical: address 1, 9600, none.')}</label>
+    </div>
+  </details>
+  <div class="section">
+    <div class="row"><h3>Waiting to be assigned</h3><span class="small muted">${DEVICES.length} device${DEVICES.length===1?'':'s'}</span></div>
+    <div class="devices" id="devList"></div>
+    <div id="devNote"></div>
+  </div>
+  <div class="section">
+    <div class="grid c2">
+      <div class="field"><label for="pair">Or type the device code</label><input id="pair" type="text" class="mono" inputmode="numeric" maxlength="7" placeholder="482 913"><div class="hint" id="pairHint">6 digits, on the Pi's small screen after it boots.</div></div>
+    </div>
+    <details><summary>My Pi isn't listed</summary><ol>
+      <li>Is the power light on? The Pi needs a 5 V / 3 A adapter; a weak one boots and then drops.</li>
+      <li>What does the small screen say? “Health check”: it is waiting for the temperature or memory to settle. “Waiting for internet”: the router link is the problem. “Device code 482 913”: it has registered, refresh this page.</li>
+      <li>Ethernet cable from the router to the Pi, with the link light on. Wi‑Fi is not used.</li>
+      <li>Does the router have internet? Plug a laptop into another port and open any website.</li>
+      <li>Give it up to 2 minutes after power‑on, then refresh this page. Holding the restart button on the Pi restarts the datalogger.</li>
+    </ol></details>
+  </div>
+  <div class="section">
+    <div class="row"><h3>Or change a plant that is already sending data</h3><span class="small muted">${PLANTS.length} plant${PLANTS.length===1?'':'s'}</span></div>
+    <div class="devices" id="plantList"></div>
+  </div>`; }
+function editPlant(p){ const finish=n=>{ S.mode='edit'; S.fromPlant=p.id; S.device=p.deviceSerial||null; S.editVersion=p.version||0; S.pushed=null; if(!S.device){ S.step=0; render(); toast(`${p.name} has no Pi assigned. Pick a waiting device, then choose “Replacing a Pi”.`); return; } S.step=3; render(); toast(`Editing ${p.name}. Push sends v${S.editVersion+1} to ${S.device}.`); };
+  if(LIVE){ api('/plants/'+encodeURIComponent(p.id)).then(d=>{ fromDraft(d); finish(d.tags.length); }).catch(()=>toast('Could not load that plant')); return; }
+  S.plant.name=p.name; S.plant.id=p.id; S.plant.idManual=true; S.plant.plcId=p.plcId; S.plc.ip=p.ip; S.tags=p.tags.map(t=>({...t})); S.serial=[]; finish(p.tags.length); }
+function refreshDevice(){ const list=$('#devList'); if(!list) return;
+  list.innerHTML=DEVICES.map(d=>`<button class="device ${S.device===d.serial?'on':''}" data-sn="${d.serial}"><span class="dot ${d.online?'':'off'}" title="${d.online?'online':'offline'}"></span><span><span class="sn">${d.serial}</span><span class="meta"><span>${d.online?'Online':'Offline'} · seen ${d.seen}</span><span title="Remote support lets the ops team reach the Pi from the office. Not needed to set it up.">${d.tailscale?'Remote support ready':'Remote support not yet'}</span><span title="Software version on the Pi">${d.image}</span></span></span><span class="code"><small>Device code</small>${fmtCode(d.code)}</span></button>`).join('');
+  $$('#devList .device').forEach(b=>b.onclick=()=>{ S.device=b.dataset.sn; S.pushed=null; if(S.mode==='edit') S.mode='existing'; refresh(); });
+  const pl=$('#plantList'); if(pl){ pl.innerHTML= PLANTS.length? PLANTS.map(p=>{ const dv=findDevice(p.deviceSerial)||{}; return `<button class="device ${S.mode==='edit'&&S.plant.id===p.id?'on':''}" data-plant="${esc(p.id)}"><span class="dot ${dv.online?'':'off'}" title="${dv.online?'Pi online':'Pi offline'}"></span><span><span class="sn" style="font-family:var(--font)">${esc(p.name)}</span><span class="meta"><span class="mono">${esc(p.deviceSerial||'no Pi assigned')}</span><span>config v${p.version||0}</span><span>${(p.tagCount??p.tags.length)} tags</span></span></span><span class="code"><small>Next push</small>v${(p.version||0)+1}</span></button>`; }).join('') : `<p class="small muted">No plants yet. The first one you push will appear here.</p>`;
+    $$('#plantList .device').forEach(b=>b.onclick=()=>editPlant(PLANTS.find(p=>p.id===b.dataset.plant))); }
+  const d=findDevice(S.device); const n=$('#devNote');
+  n.innerHTML = !d? '' : S.mode==='edit'? `<div class="note ok"><span class="i">✓</span><span>Editing <b>${esc(S.plant.name)}</b> on <b>${d.serial}</b> (${d.online?'online':'offline'}). The next push sends config v${(S.editVersion||0)+1}.</span></div>` : d.online? `<div class="note ok"><span class="i">✓</span><span><b>${d.serial}</b> is online. Config will apply within a few seconds of pushing.</span></div>` : `<div class="note warn"><span class="i">!</span><span><b>${d.serial}</b> is offline (seen ${d.seen}). You can finish the setup now; the config waits in a job and applies when the Pi reconnects.</span></div>`;
+  const pair=$('#pair'); if(pair&&!pair._bound){ pair._bound=true; pair.addEventListener('input',()=>{ const v=pair.value.replace(/\D/g,'').slice(0,6); pair.value=v.length>3? v.slice(0,3)+' '+v.slice(3):v; const h=$('#pairHint'); if(v.length<6){ h.textContent='6 digits, on the Pi\'s small screen after it boots.'; h.style.color=''; return;} const pick=m=>{ S.device=m.serial; S.pushed=null; refresh(); h.textContent=`Matched ${m.serial}.`; h.style.color='var(--ok)'; }; const miss=()=>{ h.textContent='No waiting Pi has this code. Compare it with the Pi\'s screen; if it already belongs to a plant, find it in the list below.'; h.style.color='var(--bad)'; };
+    const m=DEVICES.find(x=>x.code===v); if(m) pick(m); else if(LIVE) api('/devices/pair',{method:'POST',body:{code:v}}).then(d=>{ const md=mapDevice(d); if(!DEVICES.find(x=>x.serial===md.serial)) DEVICES.push(md); pick(md); }).catch(miss); else miss(); }); }
+}
+
+/* step 2 */
+function stepPlant(){ return `
+  <div class="head"><div><h2>Which plant does it belong to?</h2><p>Name the plant. Everything else here has a sensible default.</p></div>
+    ${S.mode==='edit'?`<span class="pill accent">Editing · next push is v${(S.editVersion||0)+1}</span>`:`<div class="seg" id="modeSeg"><button class="${S.mode==='new'?'on':''}" data-m="new">New plant</button><button class="${S.mode==='existing'?'on':''}" data-m="existing">Replacing a Pi</button></div>`}</div>
+  ${helpBox(1)}
+  <div class="section" id="existingWrap" ${S.mode==='existing'?'':'hidden'}>
+    <div class="field"><label for="fromPlant">Which plant is the new Pi replacing?</label><select id="fromPlant" data-bind="fromPlant"><option value="">Choose a plant…</option>${PLANTS.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select><div class="hint">Its PLC address and tag list are copied so the new Pi sends exactly the same data. The old Pi is retired when you push.</div></div>
+  </div>
+  <div class="section">
+    <div class="grid c2">
+      <div class="field"><label for="pname">Plant name</label><input id="pname" type="text" data-bind="plant.name" placeholder="Hinargo STP 4.5 MLD"><div class="hint">As people on site call it.</div></div>
+      <div class="field"><label for="pid">Plant ID ${tip('The plant\'s permanent name in the cloud. Made from the plant name; lower-case letters, digits and dashes. Every payload from this plant carries it.')}</label><input id="pid" type="text" class="mono" data-bind="plant.id" placeholder="hinargo-stp-45" ${S.mode==='edit'?'readonly':''}><div class="hint">${S.mode==='edit'?'Fixed: this plant has already been pushed.':'Made from the name. Cannot change after the first push.'}</div></div>
+      <div class="field"><label for="plcid">PLC ID ${tip('Which PLC at this plant the Pi reads. One Pi reads one PLC.')}</label><input id="plcid" type="text" class="mono" data-bind="plant.plcId" placeholder="PLC-01"><div class="hint">Leave PLC-01 unless the plant has more than one PLC.</div></div>
+      <div class="field"><label for="interval">Send data every</label><select id="interval" data-bind="plant.interval"><option value="10">10 seconds · testing</option><option value="30">30 seconds</option><option value="60">60 seconds · standard</option><option value="300">5 minutes</option></select></div>
+    </div>
+    <label class="check"><input type="checkbox" id="debug" data-bind="plant.debug"> Extra logging on the Pi ${tip('Only when the support team asks for it while they investigate a problem. Switch it off again afterwards; it fills the Pi\'s log quickly.')}</label>
+  </div>
+  <details class="tech"><summary>Technical details (set up automatically)</summary>
+    <dl class="kv" style="margin-top:10px"><dt>Data topic</dt><dd><code id="topicOut">${esc(topic())}</code> <button class="btn ghost sm" data-copy="${esc(topic())}">Copy</button> <span class="small muted">where the Pi publishes; the cloud rule on <code>+/pub</code> forwards it to the database queue</span></dd><dt>Cloud identity</dt><dd><code id="thingOut">${esc(S.device||'(the Pi\'s serial)')}</code> <span class="small muted">the Pi registers itself under its serial number</span></dd><dt>Certificate</dt><dd><span class="pill ok">Fetched by the Pi</span> <span class="small muted">nobody copies certificates around</span></dd></dl>
+  </details>`; }
+function refreshPlant(){ $('#topicOut').textContent=topic(); $('[data-copy]').dataset.copy=topic(); $('#thingOut').textContent=S.device||"(the Pi's serial)";
+  const seg=$('#modeSeg'); if(seg&&!seg._b){ seg._b=true; $$('button',seg).forEach(b=>b.onclick=()=>{ S.mode=b.dataset.m; $$('button',seg).forEach(x=>x.classList.toggle('on',x===b)); $('#existingWrap').hidden=S.mode!=='existing'; if(S.mode==='new'){ S.fromPlant=''; } refresh(); }); }
+  const sel=$('#fromPlant'); if(sel&&!sel._b){ sel._b=true; sel.addEventListener('change',()=>{ const p=PLANTS.find(x=>x.id===sel.value); if(!p) return; const done=n=>{ S.fromPlant=p.id; renderPanel(); refresh(); toast(`Copied ${n} tags from ${p.name}`); };
+    if(LIVE){ api('/plants/'+encodeURIComponent(p.id)).then(d=>{ fromDraft(d); done(d.tags.length); }).catch(()=>toast('Could not load that plant')); return; }
+    S.plant.name=p.name; S.plant.id=p.id; S.plant.idManual=true; S.plant.plcId=p.plcId; S.plc.ip=p.ip; S.tags=p.tags.map(t=>({...t})); S.serial=[]; done(p.tags.length); }); }
+}
+
+/* step 3 */
+function stepConn(){ return `
+  <div class="head"><div><h2>Where does the data come from?</h2><p>The PLC on the plant network, and any meters or probes wired straight to the Pi.</p></div></div>
+  ${helpBox(2)}
+  <div class="section">
+    <div class="row"><h3>PLC ${tip('Read over the plant network (Modbus TCP) through the site router. The Pi and the PLC must be on the same network.')}</h3><button class="btn sm" id="testPlc">Test connection</button></div>
+    <div class="grid c3">
+      <div class="field"><label for="ip">IP address</label><input id="ip" type="text" class="mono" data-bind="plc.ip" placeholder="192.168.1.10"><div class="hint">From the PLC programmer or integrator.</div></div>
+      <div class="field"><label for="port">Port</label><input id="port" type="number" class="mono" data-bind="plc.port"><div class="hint">Usually 502.</div></div>
+      <div class="field"><label for="unit">Unit ID ${tip('The PLC\'s own Modbus address. Almost always 1; the integrator will know if it was changed.')}</label><input id="unit" type="number" class="mono" data-bind="plc.unit"><div class="hint">Usually 1.</div></div>
+    </div>
+    <div id="plcTest"></div>
+    <div id="plcIssues"></div>
+    <details class="tech"><summary>Advanced: number format and register limit</summary>
+      <div class="grid c2" style="margin-top:12px">
+        <div class="field"><label for="order">Number format ${tip('How the PLC splits a 32-bit number across two 16-bit registers (word order). ABCD fits most PLCs. A wrong format turns every decimal into nonsense like 1.2e-38.')}</label><select id="order" data-bind="plc.order">${Object.entries(ORDERS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select><div class="hint">Leave ABCD. If decimals come out as nonsense, use <b>Find the number format</b> on the Tags step; it works it out from one known value.</div></div>
+        <div class="field"><label for="maxAddr">Highest usable register</label><input id="maxAddr" type="number" class="mono" data-bind="plc.maxAddr" placeholder="optional"><div class="hint">From the PLC datasheet, if you have it. Tags beyond it are flagged.</div></div>
+      </div>
+    </details>
+  </div>
+  <div class="section">
+    <div class="row"><h3>Meters and probes on the Pi ${tip('Energy meters, flow meters and probes wired to the Pi\'s USB-RS485 converter (Modbus RTU). Each has its own address, speed and parity, set on the device itself.')}</h3><button class="btn sm" id="addSerial">Add a meter or probe</button></div>
+    <div id="serialList" class="grid"></div>
+    <div id="serialNote"></div>
+  </div>`; }
+function refreshConn(){
+  const pi=plcIssues(); $('#plcIssues').innerHTML=pi.map(m=>`<div class="note bad"><span class="i">×</span><span>${esc(m)}</span></div>`).join('');
+  $('#ip').setAttribute('aria-invalid', !isIp(S.plc.ip));
+  const t=$('#testPlc'); if(!t._b){ t._b=true; t.onclick=()=>{ const out=$('#plcTest'); if(!isIp(S.plc.ip)){ out.innerHTML=`<div class="note bad"><span class="i">×</span><span>Enter a valid IP first.</span></div>`; return; } out.innerHTML=`<div class="note"><span class="i">…</span><span>Asking the Pi to reach ${esc(S.plc.ip)}:${esc(S.plc.port)}</span></div>`; setTimeout(()=>{ out.innerHTML=`<div class="note ok"><span class="i">✓</span><span>The PLC answered in 14 ms. <span class="muted">(simulated in this prototype)</span></span></div>`; },900); }; }
+  const list=$('#serialList'); list.innerHTML = S.serial.length? S.serial.map((d,i)=>`<div class="serial-row" data-i="${i}">
+      <div class="field"><label>Name</label><input type="text" data-sk="label" value="${esc(d.label)}" placeholder="Energy meter 1"></div>
+      <div class="field"><label>Converter</label><select data-sk="port" class="mono"><option value="/dev/ttyUSB0" ${d.port==='/dev/ttyUSB0'?'selected':''}>USB 1</option><option value="/dev/ttyUSB1" ${d.port==='/dev/ttyUSB1'?'selected':''}>USB 2</option></select></div>
+      <div class="field"><label>Speed</label><select data-sk="baud" class="mono"><option ${d.baud==9600?'selected':''}>9600</option><option ${d.baud==19200?'selected':''}>19200</option><option ${d.baud==38400?'selected':''}>38400</option></select></div>
+      <div class="field"><label>Parity</label><select data-sk="parity" class="mono"><option value="N" ${d.parity==='N'?'selected':''}>None</option><option value="E" ${d.parity==='E'?'selected':''}>Even</option><option value="O" ${d.parity==='O'?'selected':''}>Odd</option></select></div>
+      <div class="field"><label>Address</label><input type="number" class="mono" data-sk="slave" value="${esc(d.slave)}" min="1" max="247" title="Slave ID, 1–247, set in the meter's menu"></div>
+      <button class="btn icon" data-rm="${i}" title="Remove" aria-label="Remove">✕</button>
+    </div>`).join('') : `<p class="small muted">None. Fine when everything is read from the PLC. Speed, parity and address come from the meter's own menu (typical: 9600, none, 1).</p>`;
+  $$('#serialList [data-sk]').forEach(el=>el.addEventListener('input',()=>{ const i=Number(el.closest('.serial-row').dataset.i); S.serial[i][el.dataset.sk]=el.value; refreshSerialNote(); renderFooter(); renderSteps(); save(); }));
+  $$('#serialList [data-rm]').forEach(b=>b.onclick=()=>{ S.serial.splice(Number(b.dataset.rm),1); refreshConn(); renderFooter(); renderSteps(); save(); });
+  const add=$('#addSerial'); if(!add._b){ add._b=true; add.onclick=()=>{ const used=S.serial.map(d=>Number(d.slave)); let s=1; while(used.includes(s)) s++; S.serial.push({id:'s'+Date.now().toString(36),label:'',port:'/dev/ttyUSB0',baud:9600,parity:'N',slave:s}); refreshConn(); renderFooter(); renderSteps(); save(); setTimeout(()=>{ const last=$$('#serialList .serial-row').pop(); last && $('input',last).focus(); }); }; }
+  refreshSerialNote();
+}
+function refreshSerialNote(){ const n=$('#serialNote'); if(!n) return; const errs=serialIssues(); const c=cycleEstimate(); let html=errs.map(m=>`<div class="note bad"><span class="i">×</span><span>${esc(m)}</span></div>`).join('');
+  if(S.serial.length>1){ const secs=(S.serial.length-1)*HOP_S; const over=secs>Number(S.plant.interval); html+=`<div class="note ${over?'warn':''}"><span class="i">${over?'!':'i'}</span><span>${S.serial.length} meters on one converter are read one after another with a ${HOP_S} s pause, so one full round takes about <b>${secs} s</b>. ${over?`That is longer than sending every ${S.plant.interval} s, so meter values will repeat between rounds. Send less often (Plant step), or move some meters to a second converter (USB 2).`:'That fits inside the sending interval.'}</span></div>`; }
+  n.innerHTML=html; }
+
+/* step 4 */
+function stepTags(){ return `
+  <div class="head"><div><h2>What should it read?</h2><p>One row per value, straight from the PLC programmer's tag list. The Pi works out how to read them.</p></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" id="csvBtn">Import CSV</button><button class="btn sm" id="decBtn">Find the number format</button><button class="btn primary sm" id="addTag">Add tag</button></div></div>
+  ${helpBox(3)}
+  <details class="help"><summary>Which type? What do the columns mean?</summary>
+    <p class="small muted" style="margin-top:8px">Ask the PLC programmer what the PLC stores at the address, then pick the matching row. The PLC's own word is in the list too.</p>
+    <div class="whichtype">
+      <div><b>REAL</b><span>Decimal, e.g. pH 7.21. Uses 2 registers.</span></div>
+      <div><b>INT</b><span>Whole number, may be negative. 1 register.</span></div>
+      <div><b>UINT / WORD</b><span>Whole number, never negative. 1 register.</span></div>
+      <div><b>DINT</b><span>Large whole number, may be negative. 2 registers.</span></div>
+      <div><b>UDINT / DWORD</b><span>Large whole number, never negative; typical for totals. 2 registers.</span></div>
+      <div><b>DOUBLE / LREAL</b><span>Decimal with extra precision, rare. 4 registers.</span></div>
+      <div><b>coil (M, Y)</b><span>On/off kept as a relay or output.</span></div>
+      <div><b>input (X)</b><span>On/off from a physical input terminal.</span></div>
+      <div><b>bit in a register</b><span>On/off packed with up to 15 others in one register; give the bit number.</span></div>
+    </div>
+    <ul style="margin:12px 0 2px;padding-left:20px;font-size:14px;display:grid;gap:4px">
+      <li><b>Address</b> is the register (or coil / input) number as the PLC programmer defined it. A 2-register type uses the address and the next one.</li>
+      <li><b>Scale</b> multiplies the raw number. pH stored as 72 needs 0.1 to show 7.2.</li>
+      <li><b>Role</b>: leave <em>Use as it is</em>. Pick <em>Already a running total</em> for kWh or m³ counters the PLC keeps. Pick <em>A rate · make a running total</em> for a flow rate the Pi should add up into <code>&lt;tag&gt;_total</code>.</li>
+      <li><b>Zero below</b>: flow meters read a little noise when pumps are off; readings below this are sent as 0.</li>
+    </ul>
+  </details>
+  <div class="section" id="csvWrap" hidden>
+    <h3>Import the PLC programmer's list</h3>
+    <p class="small muted">Paste the CSV or choose the file. Columns <code>tag, address, type</code> are needed; <code>bit, scale, unit, source, role, zero_below</code> are optional and a header row is optional. Type can be the PLC word (<code>REAL INT UINT DINT UDINT DOUBLE BOOL DI</code>); a <code>BOOL</code> with a bit number is a bit in a register. Source is “PLC” or a meter's name.</p>
+    <textarea id="csvText" rows="5" placeholder="tag,address,type,bit,scale,unit,role,zero_below
+PH_AXTdd1_1:ADA_ADA,1000,REAL,,1,pH,,
+FMF_EQTdd1_1:ADA_ADA,1400,REAL,,1,m3/h,flow,0.5
+TRP_BLW_1:ADA_ADA,3000,BOOL,0,,,,"></textarea>
+    <div class="row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="file" id="csvFile" accept=".csv,.txt,text/csv" class="small"><button class="btn sm" id="csvParse">Preview</button><span class="small muted" id="csvSummary"></span></div>
+    <div id="csvPreview"></div>
+  </div>
+  <div class="section" id="decWrap" hidden>
+    <h3>Find the number format ${tip('PLCs differ in how they split a decimal across two registers. Given the two raw registers of one tag and the reading you expect, only one format produces that reading.')}</h3>
+    <p class="small muted">Take any decimal tag whose live reading you know (pH, level). Ask the PLC programmer for its two raw register values, or read them with any Modbus tool. The format that reproduces the known reading is the right one for this PLC.</p>
+    <div class="decoder">
+      <div class="grid c3"><div class="field"><label for="regExp">Reading you expect</label><input id="regExp" type="text" class="mono" placeholder="7.2"><div class="hint">optional</div></div><div class="field"><label for="regHi">Register N</label><input id="regHi" type="text" class="mono" placeholder="0x40E6 or 16614"></div><div class="field"><label for="regLo">Register N+1</label><input id="regLo" type="text" class="mono" placeholder="0x6666 or 26214"></div></div>
+      <div class="out" id="decOut"></div>
+    </div>
+  </div>
+  <div class="section">
+    <p class="small muted" id="tblHint" ${S.tags.length?'':'hidden'}>Scroll sideways for the last columns. Greyed cells do not apply to that type.</p>
+    <div class="tbl-wrap"><table id="tagTable"><thead><tr><th>Tag<small>name in the data</small></th><th>Source<small>PLC or a meter</small></th><th>Address<small>from the tag list</small></th><th>Type<small>what the PLC stores</small></th><th>Bit<small>0–15, bits only</small></th><th>Scale<small>× raw value</small></th><th>Unit</th><th>Role<small>what to do with it</small></th><th>Zero below<small>send 0 under this</small></th><th></th></tr></thead><tbody></tbody></table></div>
+    <div class="issues" id="tagIssues"></div>
+  </div>
+  <div class="section" id="bitWrap" hidden>
+    <div class="row"><h3>Bits inside registers ${tip('Each register holds 16 on/off bits, numbered 0 to 15. Two tags may share a register but not a bit.')}</h3></div>
+    <div class="bitmap" id="bitmap"></div>
+  </div>
+  <div class="section">
+    <div class="row"><h3>How the Pi will read it ${tip('Worked out from the addresses. Nearby tags are read in one request; the Pi reads these every cycle.')}</h3><span class="small muted" id="cycleOut"></span></div>
+    <div class="blocks" id="blocks"></div>
+  </div>`; }
+function renderTagRows(){ const tb=$('#tagTable tbody'); const {errs}=tagIssues(); const bad=new Set(errs.map(e=>e.row));
+  tb.innerHTML= S.tags.length? S.tags.map((t,i)=>`<tr data-i="${i}" class="${bad.has(i)?'err':''}">
+    <td><input type="text" class="mono" data-tk="name" value="${esc(t.name)}" placeholder="PH_AXTdd1_1:ADA_ADA" style="min-width:170px" aria-label="Tag name"></td>
+    <td><select data-tk="src" aria-label="Source"><option value="plc" ${t.src==='plc'?'selected':''}>PLC</option>${S.serial.map(d=>`<option value="${d.id}" ${t.src===d.id?'selected':''}>${esc(d.label||'(unnamed meter)')}</option>`).join('')}${t.src!=='plc'&&!S.serial.find(d=>d.id===t.src)?`<option value="${esc(t.src)}" selected>missing meter</option>`:''}</select></td>
+    <td class="num"><input type="number" class="mono" data-tk="addr" value="${esc(t.addr)}" min="0" style="width:96px" aria-label="Address"></td>
+    <td><select data-tk="type" aria-label="Type">${typeOptions(t.type)}</select></td>
+    <td class="num"><input type="number" class="mono" data-tk="bit" value="${esc(t.bit??'')}" min="0" max="15" style="width:58px" placeholder="—" aria-label="Bit" ${t.type==='bool_bit'?'':'disabled'}></td>
+    <td class="num"><input type="number" class="mono" data-tk="scale" value="${esc(t.scale)}" step="any" style="width:72px" aria-label="Scale" ${isBool(t.type)?'disabled':''}></td>
+    <td><input type="text" data-tk="unit" value="${esc(t.unit)}" style="width:72px" placeholder="${isBool(t.type)?'—':'mg/L'}" aria-label="Unit" ${isBool(t.type)?'disabled':''}></td>
+    <td><select data-tk="role" aria-label="Role" ${isBool(t.type)?'disabled':''}>${Object.entries(ROLES).map(([k,v])=>`<option value="${k}" ${(t.role||'value')===k?'selected':''}>${v}</option>`).join('')}</select></td>
+    <td class="num"><input type="number" class="mono" data-tk="zero" value="${esc(t.zero??'')}" step="any" style="width:72px" placeholder="—" aria-label="Zero below" ${isBool(t.type)?'disabled':''}></td>
+    <td><button class="btn icon" data-rm="${i}" title="Remove tag" aria-label="Remove tag">✕</button></td></tr>`).join('') : `<tr><td colspan="10" class="muted" style="padding:18px 12px;text-align:center">No tags yet. Press <b>Import CSV</b> to bring in the PLC programmer's list, or <b>Add tag</b> to type one.</td></tr>`;
+  $$('#tagTable [data-tk]').forEach(el=>el.addEventListener('input',()=>{ const tr=el.closest('tr'); const i=Number(tr.dataset.i); S.tags[i][el.dataset.tk]= el.type==='checkbox'?el.checked:el.value;
+    if(el.dataset.tk==='type'){ const b=isBool(el.value); $('[data-tk="bit"]',tr).disabled=el.value!=='bool_bit'; $('[data-tk="scale"]',tr).disabled=b; $('[data-tk="role"]',tr).disabled=b; $('[data-tk="zero"]',tr).disabled=b; const u=$('[data-tk="unit"]',tr); u.disabled=b; u.placeholder=b?'—':'mg/L'; if(b){ S.tags[i].role='value'; S.tags[i].zero=''; S.tags[i].unit=''; u.value=''; $('[data-tk="role"]',tr).value='value'; $('[data-tk="zero"]',tr).value=''; } if(el.value!=='bool_bit'){ S.tags[i].bit=''; $('[data-tk="bit"]',tr).value=''; } }
+    refreshTagsDerived(); }));
+  $$('#tagTable [data-rm]').forEach(b=>b.onclick=()=>{ S.tags.splice(Number(b.dataset.rm),1); renderTagRows(); refreshTagsDerived(); });
+}
+function refreshTagsDerived(){ save(); const {errs,warns}=tagIssues(); const bad=new Set(errs.map(e=>e.row)); $$('#tagTable tbody tr').forEach(tr=>tr.classList.toggle('err',bad.has(Number(tr.dataset.i))));
+  $('#tagIssues').innerHTML= errs.filter(e=>e.row>=0||S.tags.length).map(e=>`<div class="note bad"><span class="i">×</span><span>${esc(e.msg)}</span></div>`).join('') + warns.map(w=>`<div class="note warn"><span class="i">!</span><span>${esc(w.msg)}</span></div>`).join('') + (!errs.length&&!warns.length&&S.tags.length?`<div class="note ok"><span class="i">✓</span><span>${S.tags.length} tag${S.tags.length>1?'s':''}, nothing overlaps, no duplicates.</span></div>`:'');
+  drawBitmap(); const th=$('#tblHint'); if(th) th.hidden=!S.tags.length;
+  const blocks=buildBlocks(); const c=cycleEstimate();
+  $('#blocks').innerHTML= blocks.length? blocks.map(b=>`<div class="block" title="Modbus function ${FCS[b.space]}, ${b.end-b.start+1} ${SPACE_LABEL[b.space]} from ${b.start}"><span class="src">${esc(srcLabel(b.src))}</span><span class="rng">${b.start===b.end? SPACE_LABEL[b.space].replace(/s$/,'')+' '+b.start : SPACE_LABEL[b.space]+' '+b.start+'–'+b.end} · ${b.n} tag${b.n>1?'s':''}${b.split?' · split at the Modbus limit of '+LIMIT[b.space]:''}</span><span class="pill">${b.end-b.start+1>LIMIT[b.space]?'too big':'1 read'}</span></div>`).join('') : `<p class="small muted">Add tags to see how the Pi will read them.</p>`;
+  $('#cycleOut').textContent= blocks.length? `${blocks.length} read${blocks.length>1?'s':''} per cycle · about ${c.total<1?c.total.toFixed(2):Math.round(c.total)} s${c.total>Number(S.plant.interval)?' · longer than the sending interval':''}` : '';
+  renderFooter(); renderSteps(); }
+/* 16-cell picture of every register that holds packed bits, so sharing and clashes are seen rather than explained */
+function drawBitmap(){ const wrap=$('#bitWrap'); if(!wrap) return; const regs=new Map();
+  S.tags.forEach((t,i)=>{ if(t.type!=='bool_bit') return; const a=Number(t.addr); if(!Number.isInteger(a)||a<0) return; const k=`${t.src}|${a}`; if(!regs.has(k)) regs.set(k,{src:t.src,addr:a,bits:{}}); const b=Number(t.bit); if(t.bit===''||!Number.isInteger(b)||b<0||b>15) return; (regs.get(k).bits[b]??=[]).push(t.name||'row '+(i+1)); });
+  wrap.hidden=regs.size===0; if(!regs.size) return;
+  $('#bitmap').innerHTML=[...regs.values()].sort((x,y)=>x.addr-y.addr).map(r=>`<div class="bitreg"><div class="small"><b>${esc(srcLabel(r.src))}</b> · register <span class="mono">${r.addr}</span></div>
+    <div class="cells">${Array.from({length:16},(_,b)=>{ const n=r.bits[b]; const cls=!n?'':n.length>1?'clash':'used'; return `<span class="cell ${cls}" title="${n?esc('bit '+b+': '+n.join(', ')):'bit '+b+' free'}">${b}</span>`; }).join('')}</div>
+    <div class="legend">${Object.entries(r.bits).sort((x,y)=>x[0]-y[0]).map(([b,n])=>`<span><b>${b}</b> ${esc(n.join(' + '))}${n.length>1?' <span style="color:var(--bad)">· clash</span>':''}</span>`).join('')}</div></div>`).join(''); }
+function refreshTags(){ renderTagRows(); refreshTagsDerived();
+  const add=$('#addTag'); if(!add._b){ add._b=true; add.onclick=()=>{ const last=S.tags[S.tags.length-1]; const next= last? (last.type==='bool_bit'&&Number(last.bit)<15? Number(last.addr) : Number(last.addr)+TYPES[last.type].regs) : 1000; S.tags.push({name:'',src:last?last.src:'plc',addr:next,type:last?last.type:'float32',bit:last&&last.type==='bool_bit'?String(Number(last.bit)<15?Number(last.bit)+1:0):'',scale:1,unit:'',role:'value',zero:''}); renderTagRows(); refreshTagsDerived(); const rows=$$('#tagTable tbody tr'); $('input',rows[rows.length-1]).focus(); }; }
+  const csvBtn=$('#csvBtn'), decBtn=$('#decBtn'); if(!csvBtn._b){ csvBtn._b=true; csvBtn.onclick=()=>{ $('#csvWrap').hidden=!$('#csvWrap').hidden; $('#decWrap').hidden=true; }; decBtn.onclick=()=>{ $('#decWrap').hidden=!$('#decWrap').hidden; $('#csvWrap').hidden=true; refreshDecoder(); }; }
+  const parseBtn=$('#csvParse'); if(!parseBtn._b){ parseBtn._b=true; parseBtn.onclick=previewCsv; $('#csvFile').addEventListener('change',e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ $('#csvText').value=r.result; previewCsv(); }; r.readAsText(f); }); }
+  ['regExp','regHi','regLo'].forEach(id=>{ const el=$('#'+id); if(!el._b){ el._b=true; el.addEventListener('input',refreshDecoder); } });
+}
+function refreshDecoder(){ const hi=parseReg($('#regHi').value), lo=parseReg($('#regLo').value); const out=$('#decOut'); if(isNaN(hi)||isNaN(lo)){ out.innerHTML=`<div class="muted">Enter both registers, as plain numbers or 0x hex.</div>`; return; }
+  const exp=Number(String($('#regExp').value).replace(',','.')); const hasExp=$('#regExp').value.trim()!==''&&!isNaN(exp);
+  const cands=Object.entries(ORDERS).map(([o,l])=>{ const d=decode(hi,lo,o); const sane=isFinite(d.f)&&Math.abs(d.f)<1e6&&(d.f===0||Math.abs(d.f)>1e-3); const err=hasExp? Math.abs(d.f-exp)/Math.max(Math.abs(exp),1e-6) : null; return {o,l,d,sane,err}; });
+  const best = hasExp? cands.reduce((a,b)=>b.err<a.err?b:a) : null; const match = best&&best.err<0.02? best.o : null;
+  const rows=cands.map(({o,l,d,sane})=>{ const f=Math.abs(d.f)>1e6||Math.abs(d.f)<1e-3&&d.f!==0? d.f.toExponential(3): d.f.toFixed(4).replace(/\.?0+$/,''); const isSel=S.plc.order===o; const isMatch=match===o;
+    return `<div class="${isSel?'pick':''} ${isMatch?'match':''}"><span>${l.split(' · ')[0]}${isSel?' · in use':''}${isMatch?' · matches':''}</span><span style="display:flex;gap:8px;align-items:center"><code style="color:${sane?'inherit':'var(--bad)'}">${f}</code>${!isSel?`<button class="btn sm" data-order="${o}">Use</button>`:''}</span></div>`; }).join('');
+  const verdict = hasExp? (match? (match===S.plc.order? `<div class="note ok"><span class="i">✓</span><span>The format in use (${match}) gives ${exp}. Nothing to change.</span></div>` : `<div class="note warn"><span class="i">!</span><span>${match} gives ${exp}; the format in use (${S.plc.order}) does not. Press <b>Use</b> next to ${match}.</span></div>`) : `<div class="note bad"><span class="i">×</span><span>No format gives ${exp}. Check the two registers, or that the tag really is a decimal (REAL) and not a whole number with a scale.</span></div>`) : `<div class="small muted" style="padding:6px 8px">Red values are nonsense. Enter the reading you expect to have the matching format picked out, or press Use next to the sane one.</div>`;
+  out.innerHTML=rows+verdict;
+  $$('#decOut [data-order]').forEach(b=>b.onclick=()=>{ S.plc.order=b.dataset.order; save(); refreshDecoder(); toast(`Number format set to ${S.plc.order}`); }); }
+function previewCsv(){ const {rows,error}=parseCsv($('#csvText').value); const pv=$('#csvPreview'), sum=$('#csvSummary'); if(error){ pv.innerHTML=`<div class="note bad"><span class="i">×</span><span>${esc(error)}</span></div>`; sum.textContent=''; return; }
+  const ok=rows.filter(r=>!r.problems.length); sum.textContent=`${ok.length} of ${rows.length} rows can be imported`;
+  pv.innerHTML=`<div class="tbl-wrap"><table style="min-width:560px"><thead><tr><th>Tag</th><th>Address</th><th>Type</th><th>Role</th><th>Source</th><th>Status</th></tr></thead><tbody>${rows.map(r=>`<tr class="${r.problems.length?'err':''}"><td class="mono">${esc(r.name)}</td><td class="mono">${esc(r.addr)}${r.type==='bool_bit'?' bit '+esc(r.bit):''}</td><td>${TYPES[r.type]?esc(TYPES[r.type].label):esc(r.type)}</td><td class="small">${esc(ROLES[r.role]||r.role)}${r.zero!==''?' · zero < '+esc(r.zero):''}</td><td>${esc(srcLabel(r.src))}</td><td class="small">${r.problems.length?`<span class="pill bad">${esc(r.problems.join(', '))}</span>`:'<span class="pill ok">ready</span>'}</td></tr>`).join('')}</tbody></table></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px"><button class="btn primary sm" id="csvImport" ${ok.length?'':'disabled'}>Import ${ok.length} rows</button><label class="check"><input type="checkbox" id="csvReplace"> Replace the current tags instead of adding</label></div>`;
+  $('#csvImport').onclick=()=>{ const mapped=ok.map(r=>({name:r.name,src:r.src,addr:Number(r.addr),type:r.type,bit:r.type==='bool_bit'?r.bit:'',scale:Number(r.scale)||1,unit:r.unit,role:r.role,zero:r.zero!==''&&!isNaN(Number(r.zero))?r.zero:''})); if($('#csvReplace').checked) S.tags=mapped; else S.tags=S.tags.concat(mapped); $('#csvWrap').hidden=true; renderTagRows(); refreshTagsDerived(); toast(`Imported ${ok.length} tags${rows.length-ok.length?`, skipped ${rows.length-ok.length}`:''}`); };
+}
+
+/* step 5 */
+function stepReview(){ const d=findDevice(S.device)||{}; const c=cycleEstimate(); const {warns}=tagIssues(); const cfg=buildConfig(); const p=S.pushed;
+  return `
+  <div class="head"><div><h2>Review and push</h2><p>Check the summary, then push. The server sends the config to the Pi; the Pi starts reading and sending by itself.</p></div>${p?`<span class="pill accent">config v${p.version??'…'}</span>`:S.mode==='edit'?`<span class="pill accent">will push v${(S.editVersion||0)+1}</span>`:''}</div>
+  ${helpBox(4)}
+  <div class="section"><div class="cards">
+    <div class="card"><h3>Pi</h3><dl class="kv"><dt>Serial</dt><dd class="mono">${esc(S.device)}</dd><dt>State</dt><dd>${d.online?'<span class="pill ok">online</span>':'<span class="pill warn">offline · config waits for it</span>'}</dd><dt>Remote support</dt><dd>${d.tailscale?'<span class="pill ok">ready</span>':'<span class="pill">not yet · fine for now</span>'}</dd></dl></div>
+    <div class="card"><h3>Plant</h3><dl class="kv"><dt>Name</dt><dd>${esc(S.plant.name)}</dd><dt>Plant ID</dt><dd class="mono">${esc(S.plant.id)} · ${esc(S.plant.plcId)}</dd><dt>Sends</dt><dd>every ${esc(S.plant.interval)} s · kept on the Pi while offline</dd></dl></div>
+    <div class="card"><h3>Reads from</h3><dl class="kv"><dt>PLC</dt><dd class="mono">${esc(S.plc.ip)}:${esc(S.plc.port)} · unit ${esc(S.plc.unit)} · format ${esc(S.plc.order)}</dd><dt>Meters</dt><dd>${S.serial.length? S.serial.map(s=>`${esc(s.label)} <span class="mono muted">(${s.port==='/dev/ttyUSB1'?'USB 2':'USB 1'} · address ${esc(s.slave)})</span>`).join('<br>'):'none'}</dd></dl></div>
+    <div class="card"><h3>Values</h3><dl class="kv"><dt>Tags</dt><dd>${S.tags.length}</dd><dt>Reads</dt><dd>${cfg.polls.length} per cycle</dd><dt>One cycle</dt><dd>about ${c.total<1?c.total.toFixed(2):Math.round(c.total)} s ${c.total>Number(S.plant.interval)?'<span class="pill warn">longer than the sending interval</span>':'<span class="pill ok">fits</span>'}</dd></dl></div>
+  </div>
+  ${warns.map(w=>`<div class="note warn"><span class="i">!</span><span>${esc(w.msg)}</span></div>`).join('')}
+  </div>
+  <div class="section" id="pushWrap" ${p?'':'hidden'}>
+    <h3>Progress</h3>
+    <div class="timeline" id="timeline"></div>
+    <div id="liveWrap" hidden><h3 style="margin-top:8px">First values from the plant</h3><div class="tiles" id="tiles"></div></div>
+  </div>
+  <div class="section">
+    <details class="tech"><summary>Technical: the exact config the Pi will receive</summary><pre style="margin-top:10px">${esc(JSON.stringify(cfg,null,2))}</pre><p class="small muted" style="margin-top:8px">No certificates or passwords are in this file. The Pi fetches its own certificate from the cloud.</p></details>
+  </div>`; }
+function pushSteps(){ const p=S.pushed; return [`Config v${p.version??'…'} saved on the server`, 'Config sent to the Pi', p.online?'The Pi applied it and started reading':'Waiting for the Pi to come online', 'First values received from the plant']; }
+function drawTimeline(){ const el=$('#timeline'); if(!el||!S.pushed) return; const p=S.pushed; $('#pushWrap').hidden=false; const pill=$('.panel>.head .pill.accent'); if(pill) pill.textContent=`config v${p.version??'…'}`;
+  el.innerHTML = p.stage===-1 ? `<div class="note bad"><span class="i">×</span><span>${esc(p.msg||'Push failed')}</span></div>` : pushSteps().map((s,i)=>{ const st= i<p.stage?'done': i===p.stage? (p.online||i<2?'live':'wait') :''; return `<div class="tl ${st}"><span class="m">${st==='done'?'✓':''}</span><span>${esc(s)}</span></div>`; }).join(''); }
+function push(){ const d=findDevice(S.device)||{}; S.pushed={version:LIVE?null:(S.mode==='edit'?(S.editVersion||0)+1:1),stage:0,online:!!d.online,live:LIVE,msg:null}; renderPanel(); renderFooter(); if(LIVE) pushLive(); else runMock(); }
+function afterPush(version){ S.editVersion=version; S.mode='edit'; const p=PLANTS.find(x=>x.id===S.plant.id); if(p){ p.version=version; p.deviceSerial=S.device; p.name=S.plant.name; p.tagCount=S.tags.length; } else PLANTS.push({id:S.plant.id,name:S.plant.name,plcId:S.plant.plcId,ip:S.plc.ip,deviceSerial:S.device,version,tags:S.tags.map(t=>({...t})),tagCount:S.tags.length}); const i=DEVICES.findIndex(x=>x.serial===S.device); if(i>=0){ ASSIGNED.push(DEVICES[i]); DEVICES.splice(i,1); } save(); }
+function runMock(){ const p=S.pushed; const tick=()=>{ if(S.pushed!==p) return; if(p.stage>=2 && !p.online){ p.stage=2; drawTimeline(); renderFooter(); return; } p.stage++; drawTimeline(); if(p.stage>=4){ p.stage=4; showLive(); afterPush(p.version); renderFooter(); toast('Data is flowing'); return; } setTimeout(tick,900); }; setTimeout(tick,900); }
+async function pushLive(){ const p=S.pushed; const fail=msg=>{ if(S.pushed!==p) return; p.stage=-1; p.msg=msg; drawTimeline(); renderFooter(); }; const set=st=>{ if(S.pushed!==p) return; p.stage=st; drawTimeline(); renderFooter(); };
+  let job; try{ await api('/plants/'+encodeURIComponent(S.plant.id),{method:'PUT',body:toDraft()}); job=await api('/plants/'+encodeURIComponent(S.plant.id)+'/push',{method:'POST',body:{serial:S.device}}); }
+  catch(e){ const msgs=Array.isArray(e.detail)? e.detail.map(x=>x.msg||x): [String(e.detail||e.message)]; return fail('Server rejected the config: '+msgs.join(' ')); }
+  p.version=job.config_version; set(1);
+  const liveUrl='/devices/'+encodeURIComponent(S.device)+'/live';
+  const poll=async()=>{ if(S.pushed!==p) return; try{ const j=await api('/jobs/'+job.id); if(j.status==='failed') return fail('Pi reported: '+(j.message||'failed')); if(j.status==='sent'&&p.stage<2) set(2);
+      if(j.status==='applied'){ if(p.stage<3) set(3); const l=await api(liveUrl); if(l.payload&&l.payload.config_version===job.config_version){ set(4); showLive(l.payload.values); afterPush(job.config_version); loadDevices(); toast('Data is flowing'); const t=setInterval(async()=>{ if(S.step!==4||S.pushed!==p) return clearInterval(t); try{ const l2=await api(liveUrl); if(l2.payload) showLive(l2.payload.values); }catch(e){} },5000); return; } } }catch(e){} setTimeout(poll,1500); }; setTimeout(poll,1000); }
+function showLive(values){ const vals={float32:()=>(Math.random()*8+1).toFixed(2), int16:()=>(Math.random()*30+10).toFixed(1), uint16:()=>Math.round(Math.random()*500), int32:()=>Math.round(Math.random()*90000+1000), bool:()=>Math.random()>.4?'ON':'OFF'};
+  const show=t=>{ if(!values) return vals[isBool(t.type)?'bool':t.type](); const v=values[t.name]; return v===null||v===undefined?'—': (isBool(t.type)||typeof v==='boolean')? (v?'ON':'OFF') : Number.isInteger(v)? v : Number(v).toFixed(2); };
+  const lw=$('#liveWrap'); if(!lw) return; lw.hidden=false; $('#tiles').innerHTML=S.tags.slice(0,8).map(t=>`<div class="tile"><div class="v">${show(t)}<span class="u">${esc(t.unit)}</span></div><div class="n">${esc(t.name)}</div></div>`).join('')+(S.tags.length>8?`<div class="tile"><div class="v">+${S.tags.length-8}</div><div class="n">more tags</div></div>`:''); }
+
+/* ---------- server connection (used when served by the backend; the artifact copy stays in example mode) ---------- */
+const API=location.origin+'/api/v1'; let LIVE=false; const GUIDE_URL='https://claude.ai/artifact/UyAULSVXNuPtCc9PKsBH4a', E2E_URL='https://claude.ai/artifact/BWHzP3UPDo5oun2W8T9K9s';
+const STATIC_SITE=/github\.io$/.test(location.hostname)||location.protocol==='file:';   // served as plain files: keep the relative links
+const ago=iso=>{ if(!iso) return 'never'; const s=Math.max(0,(Date.now()-new Date(iso))/1000); return s<60?'just now': s<3600? Math.round(s/60)+' min ago' : s<86400? Math.round(s/3600)+' h ago' : Math.round(s/86400)+' d ago'; };
+const mapDevice=d=>({serial:d.serial, code:d.pairing_code, online:d.online, seen:ago(d.last_seen), tailscale:d.tailscale, image:(d.image_version||'—')+(d.health&&d.health.cpu_temp_c!=null?` · CPU ${Math.round(d.health.cpu_temp_c)}°C`:'')+(d.health&&d.health.buffered?` · ${d.health.buffered} buffered`:'')});
+async function api(path,opts={}){ const r=await fetch(API+path,{method:opts.method||'GET',headers:{'Content-Type':'application/json'},body:opts.body?JSON.stringify(opts.body):undefined}); if(!r.ok){ let detail; try{ detail=(await r.json()).detail; }catch(e){ detail=r.statusText; } const err=new Error(typeof detail==='string'?detail:'validation'); err.status=r.status; err.detail=detail; throw err; } return r.status===204?null:r.json(); }
+async function connect(){ if(!/^https?:$/.test(location.protocol)) return; try{ await loadDevices(true); LIVE=true; }catch(e){ LIVE=false; } }
+async function loadDevices(first){ if(!LIVE&&!first) return; const [un,as,pl]=await Promise.all([api('/devices?status=unassigned'),api('/devices?status=assigned'),api('/plants')]); DEVICES=un.map(mapDevice); ASSIGNED=as.map(mapDevice); PLANTS=pl.map(p=>({id:p.id,name:p.name,plcId:p.plc_id,ip:'',tags:[],deviceSerial:p.device_serial,version:p.config_version||0,tagCount:p.tag_count})); if(!first&&S.step===0&&document.activeElement!==$('#pair')) refreshDevice(); }
+function toDraft(){ return {id:S.plant.id,name:S.plant.name,plc_id:S.plant.plcId,interval_s:Number(S.plant.interval),debug:!!S.plant.debug,plc:{ip:S.plc.ip,port:Number(S.plc.port),unit_id:Number(S.plc.unit),word_order:S.plc.order,max_address:S.plc.maxAddr===''?null:Number(S.plc.maxAddr)},serial:S.serial.map(d=>({id:d.id,label:d.label,port:d.port,baud:Number(d.baud),parity:d.parity,slave_id:Number(d.slave)})),
+  tags:S.tags.map(t=>({name:t.name,source:t.src,address:Number(t.addr),type:t.type,bit:t.type==='bool_bit'?Number(t.bit):null,scale:isBool(t.type)?1:Number(t.scale),unit:t.unit||null,role:isBool(t.type)?'value':(t.role||'value'),zero_below:t.zero===''||isBool(t.type)?null:Number(t.zero)}))}; }
+function fromDraft(d){ S.plant.name=d.name; S.plant.id=d.id; S.plant.idManual=true; S.plant.plcId=d.plc_id; S.plant.interval=d.interval_s; S.plant.debug=!!d.debug; S.plc={ip:d.plc.ip,port:d.plc.port,unit:d.plc.unit_id,order:d.plc.word_order,maxAddr:d.plc.max_address??''}; S.serial=d.serial.map(s=>({id:s.id,label:s.label,port:s.port,baud:s.baud,parity:s.parity,slave:s.slave_id}));
+  S.tags=d.tags.map(t=>({name:t.name,src:t.source,addr:t.address,type:t.type,bit:t.bit==null?'':String(t.bit),scale:t.scale,unit:t.unit||'',role:t.role||(t.totalizer?'counter':'value'),zero:t.zero_below==null?'':String(t.zero_below)})); }
+
+/* ---------- boot ---------- */
+async function start(){ await connect(); if(LIVE){ if(!hadDraft || !findDevice(S.device)) S=blank(); } render();
+  const chip=$('#ctxChip'); chip.style.cursor='pointer'; if(LIVE){ chip.innerHTML=`Connected · <b>${esc(location.host)}</b>`; chip.title='Click to start a fresh draft'; setInterval(()=>loadDevices().catch(()=>{}),10000); } else { chip.title='Click to reset to the example'; if(!STATIC_SITE){ $('#guideLink').href=GUIDE_URL; $('#e2eLink').href=E2E_URL; } }
+  chip.onclick=()=>{ S=LIVE?blank():sample(); try{localStorage.removeItem('dl-onboarding-draft');}catch(e){} render(); toast(LIVE?'Fresh draft':'Reset to the example'); }; }
+window.claude?.hot?.snapshot?.(()=>S);
+window.claude?.hot?.ready ? window.claude.hot.ready(d=>{ if(d&&d.tags) S=Object.assign(sample(),d); start(); }) : start();
+</script>
