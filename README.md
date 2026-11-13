@@ -49,12 +49,22 @@ second person or a manual:
 
 ## Live pages (GitHub Pages)
 
-The three pages are published from the `docs/` folder at
+The three pages are served from the `gh-pages` branch at
 https://mihirsethidp.github.io/Datalogger-new/ — the dashboard (`index.html`, in example
 mode: no backend, so pushes are simulated), the provisioning guide (`guide.html`) and the
-end-to-end walkthrough (`e2e.html`). `docs/` is a copy of `onboarding-ui.html`,
-`backend/static/guide.html` and `e2e-walkthrough.html`; copy them again after editing. The
-real backend and mock fleet run locally (below), not on Pages.
+end-to-end walkthrough (`e2e.html`). The branch is the `docs/` folder of `main`, which is a
+copy of `onboarding-ui.html`, `backend/static/guide.html` and `e2e-walkthrough.html`. To
+republish after editing:
+
+```bash
+cp onboarding-ui.html docs/index.html && cp backend/static/guide.html docs/guide.html && cp e2e-walkthrough.html docs/e2e.html
+```
+
+```bash
+git add docs && git commit -m "Update site" && git push && git subtree push --prefix docs origin gh-pages
+```
+
+The real backend and mock fleet run locally (below), not on Pages.
 
 ## Layout
 
