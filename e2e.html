@@ -1,0 +1,248 @@
+<title>Datalogger End-to-End Walkthrough</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: three lanes (plant · server · cloud) with a packet bus beneath them, a story bar on top, scenarios and a log below. Same tokens as the dashboard. */
+:root{
+  --bg:#f1f4f2; --surface:#ffffff; --surface-2:#e8edeb; --fg:#15201c; --muted:#5d6b66; --line:#d3dbd8;
+  --accent:#0d6b5b; --accent-ink:#ffffff; --accent-soft:#dbeee8;
+  --ok:#1f8a4f; --ok-soft:#dff3e6; --warn:#a56d14; --warn-soft:#fbf0d8; --bad:#bf3b2f; --bad-soft:#fbe3df; --code:#edf1ef;
+  --font:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --shadow:0 1px 2px rgba(21,32,28,.06),0 8px 24px -16px rgba(21,32,28,.25);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1513; --surface:#171e1b; --surface-2:#1f2825; --fg:#e4eae7; --muted:#95a39d; --line:#2b3632;
+  --accent:#4fc7a4; --accent-ink:#06211a; --accent-soft:#193a32;
+  --ok:#5ec784; --ok-soft:#173424; --warn:#e2ab4c; --warn-soft:#3a2d12; --bad:#ec7a6d; --bad-soft:#3f1f1b; --code:#1b2320;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.6); color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0f1513; --surface:#171e1b; --surface-2:#1f2825; --fg:#e4eae7; --muted:#95a39d; --line:#2b3632;
+  --accent:#4fc7a4; --accent-ink:#06211a; --accent-soft:#193a32;
+  --ok:#5ec784; --ok-soft:#173424; --warn:#e2ab4c; --warn-soft:#3a2d12; --bad:#ec7a6d; --bad-soft:#3f1f1b; --code:#1b2320;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.6); color-scheme:dark }
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:14px;line-height:1.45;margin:0}
+.app{max-width:1180px;margin:0 auto;padding-block:18px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:14px}
+h1{font-size:20px;margin:0;font-weight:600}
+h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0;font-weight:500}
+h3{font-size:13px;margin:0;font-weight:600}
+p{margin:0}
+.muted{color:var(--muted)}
+.mono{font-family:var(--mono);font-size:.93em}
+header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .mark{width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--mono);font-weight:500;font-size:13px}
+
+.story{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.story .t{display:grid;gap:3px}
+.story .t b{font-size:15px}
+.story .t span{color:var(--muted)}
+.story .ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{font:inherit;font-weight:500;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:7px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:disabled,.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select{font:inherit;font-size:13px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.progress{display:flex;gap:4px;margin-top:6px}
+.progress i{height:4px;flex:1;border-radius:2px;background:var(--line)}
+.progress i.done{background:var(--ok)}
+.progress i.cur{background:var(--accent)}
+
+.lanes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;position:relative}
+.lane{display:grid;gap:10px;align-content:start}
+.lane>h2{padding:0 2px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:8px;box-shadow:var(--shadow);transition:box-shadow .3s,border-color .3s}
+.card.hot{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.card .hd{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:500;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}.pill.warn{background:var(--warn-soft);color:var(--warn)}.pill.bad{background:var(--bad-soft);color:var(--bad)}.pill.accent{background:var(--accent-soft);color:var(--accent)}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th{text-align:left;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:500;padding:4px 6px;border-bottom:1px solid var(--line)}
+td{padding:4px 6px;border-bottom:1px solid var(--line);vertical-align:top;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+td.mono,th.mono{font-family:var(--mono)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13px}
+.kv dt{color:var(--muted)}.kv dd{margin:0;font-weight:500;min-width:0;overflow-wrap:anywhere}
+.code{font-family:var(--mono);font-size:11.5px;background:var(--code);border-radius:8px;padding:8px 10px;overflow-x:auto;white-space:pre;margin:0;line-height:1.45;max-height:170px}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.tile{border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+.tile .v{font-family:var(--mono);font-size:16px;font-weight:500}
+.tile .v small{font-family:var(--font);font-size:11px;color:var(--muted);margin-left:3px}
+.tile .n{font-size:11.5px;color:var(--muted)}
+.tile.bad .v{color:var(--bad)}
+.empty{color:var(--muted);font-size:12.5px;padding:4px 0}
+.steps5{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.steps5 span{font-size:11px;color:var(--muted);border-top:3px solid var(--line);padding-top:4px}
+.steps5 span.done{border-top-color:var(--ok);color:var(--fg)}.steps5 span.cur{border-top-color:var(--accent);color:var(--fg)}
+.pi-led{width:10px;height:10px;border-radius:50%;background:var(--muted);opacity:.4;display:inline-block}
+.pi-led.on{background:var(--ok);opacity:1;box-shadow:0 0 8px var(--ok)}
+.pi-led.warn{background:var(--warn);opacity:1}
+.bigcode{font-family:var(--mono);font-size:22px;letter-spacing:.1em;font-weight:500}
+
+.bus{position:relative;height:44px;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);display:grid;grid-template-columns:repeat(3,1fr)}
+.bus .node{display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+.pkt{position:absolute;top:9px;transform:translateX(-50%);padding:4px 10px;border-radius:999px;font-family:var(--mono);font-size:11.5px;font-weight:500;background:var(--accent);color:var(--accent-ink);white-space:nowrap;box-shadow:var(--shadow);pointer-events:none}
+.pkt.data{background:var(--ok);color:#fff}.pkt.bad{background:var(--bad);color:#fff}.pkt.warn{background:var(--warn);color:#fff}
+
+.scen{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.scen button{text-align:left;font:inherit;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;display:grid;gap:3px;color:var(--fg)}
+.scen button:hover{border-color:var(--accent)}
+.scen button:disabled{opacity:.5;cursor:not-allowed}
+.scen button b{font-size:13px}
+.scen button span{font-size:12px;color:var(--muted)}
+.scen button.on{border-color:var(--warn);background:var(--warn-soft)}
+.log{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;max-height:200px;overflow:auto;font-family:var(--mono);font-size:12px;line-height:1.5}
+.log div{display:grid;grid-template-columns:62px 58px 1fr;gap:10px;padding:2px 0;border-bottom:1px solid var(--line)}
+.log div:last-child{border-bottom:0}
+.log .who{color:var(--accent);font-weight:500}
+.log .t{color:var(--muted)}
+@media (max-width:860px){.lanes,.scen{grid-template-columns:1fr}.bus{display:none}.story{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.pkt{transition:none}}
+</style>
+
+<div class="app">
+  <header>
+    <div class="brand"><div class="mark">E2E</div><div><h1>Datalogger End-to-End Walkthrough</h1><p class="muted">One Pi, one plant, from power-on to data in the cloud. Everything on this page is simulated in the browser.</p></div></div>
+  </header>
+
+  <div class="story">
+    <div class="t"><b id="stTitle"></b><span id="stDesc"></span><div class="progress" id="stProg"></div></div>
+    <div class="ctl">
+      <button class="btn primary" id="nextBtn">Next step</button>
+      <button class="btn" id="playBtn">Play all</button>
+      <select id="speed" aria-label="Speed"><option value="1">Normal</option><option value="2">Fast</option><option value="0.5">Slow</option></select>
+      <button class="btn" id="resetBtn">Reset</button>
+    </div>
+  </div>
+
+  <div class="lanes" id="lanes">
+    <div class="lane"><h2>Plant · site LAN</h2>
+      <div class="card" id="cPlc"><div class="hd"><h3>PLC · 192.168.10.20</h3><span class="pill" id="plcPill">Modbus TCP</span></div>
+        <table><thead><tr><th>Addr</th><th>Holds</th><th class="mono">Raw (hex)</th><th>True value</th></tr></thead><tbody id="plcRegs"></tbody></table></div>
+      <div class="card" id="cMeter"><div class="hd"><h3>Energy meter · RS485 slave 1</h3><span class="pill">/dev/ttyUSB0</span></div>
+        <table><thead><tr><th>Addr</th><th>Holds</th><th class="mono">Raw (hex)</th><th>True value</th></tr></thead><tbody id="meterRegs"></tbody></table></div>
+      <div class="card" id="cPi"><div class="hd"><h3><span class="pi-led" id="piLed"></span> Raspberry Pi · base image</h3><span class="pill" id="piPill">powered off</span></div>
+        <dl class="kv"><dt>Serial</dt><dd class="mono">DP-PI-0F3A21</dd><dt>Device code</dt><dd><span class="bigcode" id="piCode">—</span></dd><dt>Config</dt><dd id="piCfg">none</dd><dt>Buffer</dt><dd id="piBuf">0 payloads</dd><dt>Internet</dt><dd id="piNet">—</dd></dl>
+        <pre class="code" id="piDecode" hidden></pre></div>
+    </div>
+    <div class="lane"><h2>Server</h2>
+      <div class="card" id="cDev"><div class="hd"><h3>Devices</h3><span class="pill" id="devPill">registry</span></div><div id="devTbl"><p class="empty">Nothing has registered yet.</p></div></div>
+      <div class="card" id="cCfg"><div class="hd"><h3>Compiler</h3><span class="pill" id="cfgPill">validate · poll plan</span></div><div id="cfgOut"><p class="empty">No plant draft yet.</p></div></div>
+      <div class="card" id="cJobs"><div class="hd"><h3>Jobs</h3><span class="pill">IoT Core Jobs / heartbeat</span></div><div id="jobTbl"><p class="empty">No jobs.</p></div></div>
+    </div>
+    <div class="lane"><h2>Cloud · dashboard</h2>
+      <div class="card" id="cOps"><div class="hd"><h3>Onboarding dashboard</h3><span class="pill accent">ops engineer</span></div>
+        <div class="steps5" id="ops5"><span>1 Device</span><span>2 Plant</span><span>3 Connections</span><span>4 Tags</span><span>5 Push</span></div>
+        <p class="muted" id="opsNote" style="font-size:12.5px">Waiting for a device to appear.</p></div>
+      <div class="card" id="cTopic"><div class="hd"><h3>MQTT topic</h3><span class="pill mono" id="topicPill">—</span></div><pre class="code" id="payload">no payload yet</pre></div>
+      <div class="card" id="cTiles"><div class="hd"><h3>Live values</h3><span class="pill" id="tilesPill">0 received</span></div><div class="tiles" id="tiles"><p class="empty">Nothing yet.</p></div></div>
+    </div>
+  </div>
+  <div class="bus" id="bus"><div class="node">plant</div><div class="node">server</div><div class="node">cloud</div></div>
+
+  <div>
+    <h2 style="margin-bottom:8px">What-ifs · available once data is flowing</h2>
+    <div class="scen">
+      <button id="scNet" disabled><b>Internet drops at the site</b><span>Payloads buffer on the Pi and flush when the link returns. Nothing is lost.</span></button>
+      <button id="scOrder" disabled><b>Wrong number format</b><span>The classic nonsense-decimal symptom and the fix: Find the number format, then push v2.</span></button>
+      <button id="scAddr" disabled><b>PLC programmer moves an address</b><span>Reads fail for that tag, the dashboard shows it, ops updates the address and pushes.</span></button>
+      <button id="scTag" disabled><b>Add a tag and push</b><span>A new value from the same PLC, one more row, next version to the Pi, no reboot.</span></button>
+    </div>
+  </div>
+
+  <div><h2 style="margin-bottom:8px">Event log</h2><div class="log" id="log"></div></div>
+</div>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s); const $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms/Number($('#speed').value||1)));
+
+/* ---------- the physical truth: what the PLC and meter hold ---------- */
+const TRUE={pH:7.21, DO:2.37, Flow:184.4, Level:21, Blower1:1, kWh:58844};
+const PLC_ORDER='ABCD';   // the PLC writes high word first
+function f32regs(v,order){ const dv=new DataView(new ArrayBuffer(4)); dv.setFloat32(0,v); const hi=dv.getUint16(0), lo=dv.getUint16(2); return order==='ABCD'?[hi,lo]:[lo,hi]; }
+function i32regs(v,order){ const dv=new DataView(new ArrayBuffer(4)); dv.setInt32(0,v); const hi=dv.getUint16(0), lo=dv.getUint16(2); return order==='ABCD'?[hi,lo]:[lo,hi]; }
+function decode(regs,type,order){ if(type==='bool') return !!regs[0]; if(type==='int16'){ const dv=new DataView(new ArrayBuffer(2)); dv.setUint16(0,regs[0]); return dv.getInt16(0);} const [a,b]= order==='ABCD'?[regs[0],regs[1]]:[regs[1],regs[0]]; const dv=new DataView(new ArrayBuffer(4)); dv.setUint16(0,a); dv.setUint16(2,b); return type==='int32'?dv.getInt32(0):dv.getFloat32(0); }
+const hex=r=>'0x'+r.toString(16).toUpperCase().padStart(4,'0');
+let PLC_MAP={pH:1000, DO:1200, Flow:1400, Level:1600, Blower1:2001};   // where the PLC programmer put things
+function plcRegisters(){ const t=Date.now()/1000; const drift=k=>TRUE[k]*(1+0.02*Math.sin(t/17+k.length));
+  return {[PLC_MAP.pH]:f32regs(drift('pH'),PLC_ORDER), [PLC_MAP.DO]:f32regs(drift('DO'),PLC_ORDER), [PLC_MAP.Flow]:f32regs(drift('Flow'),PLC_ORDER), [PLC_MAP.Level]:[TRUE.Level], [PLC_MAP.Blower1]:[TRUE.Blower1]}; }
+function meterRegisters(){ const k=Math.round(TRUE.kWh+(Date.now()-W.t0)/1000*0.8); return {100:i32regs(k,'ABCD')}; }
+
+/* ---------- world state ---------- */
+let W; function fresh(){ return { t0:Date.now(), stage:0, pi:{on:false,net:true,registered:false,code:null,cfg:null,buffer:[],polling:null,order:'ABCD'}, server:{devices:[],plant:null,version:0,jobs:[]}, cloud:{topic:null,payload:null,count:0,tiles:{}}, ops:0, scen:{net:false,order:false,addr:false} }; }
+const TAGS=[ {name:'pH_Aeration',src:'plc',addr:1000,type:'float32',scale:1,unit:'pH'}, {name:'DO_Aeration',src:'plc',addr:1200,type:'float32',scale:1,unit:'mg/L'}, {name:'Flow_Inlet',src:'plc',addr:1400,type:'float32',scale:1,unit:'m3/h'}, {name:'Level_EQ',src:'plc',addr:1600,type:'int16',scale:0.1,unit:'m'}, {name:'Blower1_Run',src:'plc',addr:2001,type:'bool',scale:1,unit:''}, {name:'EM1_kWh',src:'em1',addr:100,type:'int32',scale:0.1,unit:'kWh',tot:true} ];
+function pollPlan(tags){ const g={}; tags.forEach(t=>{ const span=t.type==='float32'||t.type==='int32'?2:1; const k=t.src+'|'+(t.type==='bool'?'coil':'reg'); (g[k]=g[k]||[]).push([t.addr,t.addr+span-1]); }); const out=[]; for(const k in g){ const [src,space]=k.split('|'); let cur=null; for(const [s,e] of g[k].sort((a,b)=>a[0]-b[0])){ if(cur&&s-cur[1]-1<=10){ cur[1]=Math.max(cur[1],e);} else { cur=[s,e]; out.push({src,fc:space==='coil'?1:3,start:s,range:cur}); } } } return out.map(p=>({src:p.src,fc:p.fc,start:p.start,count:p.range[1]-p.range[0]+1})); }
+
+/* ---------- rendering ---------- */
+function hot(id){ const el=$('#'+id); el.classList.add('hot'); setTimeout(()=>el.classList.remove('hot'),1400/Number($('#speed').value||1)); }
+function log(who,msg){ const t=((Date.now()-W.t0)/1000).toFixed(1).padStart(6)+'s'; const el=$('#log'); el.insertAdjacentHTML('beforeend',`<div><span class="t">${t}</span><span class="who">${who}</span><span>${msg}</span></div>`); el.scrollTop=el.scrollHeight; }
+function renderPlant(){ const regs=plcRegisters(); const names={[PLC_MAP.pH]:'pH (REAL)',[PLC_MAP.DO]:'DO (REAL)',[PLC_MAP.Flow]:'Flow (REAL)',[PLC_MAP.Level]:'Level ×10 (INT)',[PLC_MAP.Blower1]:'Blower 1 (BOOL coil)'}; const truth={[PLC_MAP.pH]:decode(regs[PLC_MAP.pH],'float32',PLC_ORDER).toFixed(2),[PLC_MAP.DO]:decode(regs[PLC_MAP.DO],'float32',PLC_ORDER).toFixed(2),[PLC_MAP.Flow]:decode(regs[PLC_MAP.Flow],'float32',PLC_ORDER).toFixed(1),[PLC_MAP.Level]:(TRUE.Level/10).toFixed(1)+' m',[PLC_MAP.Blower1]:'ON'};
+  $('#plcRegs').innerHTML=Object.keys(regs).sort((a,b)=>a-b).map(a=>`<tr><td class="mono">${a}${regs[a].length>1?'–'+(Number(a)+1):''}</td><td>${names[a]}</td><td class="mono">${regs[a].map(hex).join(' ')}</td><td>${truth[a]}</td></tr>`).join('');
+  const m=meterRegisters(); $('#meterRegs').innerHTML=`<tr><td class="mono">100–101</td><td>kWh ×10 (DINT)</td><td class="mono">${m[100].map(hex).join(' ')}</td><td>${(decode(m[100],'int32','ABCD')/10).toFixed(1)} kWh</td></tr>`;
+  const p=W.pi; $('#piLed').className='pi-led'+(p.on?(p.net?' on':' warn'):''); $('#piPill').textContent=!p.on?'powered off':!p.registered?'booting':p.cfg?`config v${p.cfg.version} · polling`:'registered · waiting for a plant'; $('#piPill').className='pill'+(p.cfg?' ok':p.registered?' accent':''); $('#piCode').textContent=p.code?p.code.slice(0,3)+' '+p.code.slice(3):'—'; $('#piCfg').textContent=p.cfg?`v${p.cfg.version} · ${p.cfg.tags.length} tags · ${p.cfg.polls.length} polls · ${p.cfg.order}`:'none'; $('#piBuf').textContent=`${p.buffer.length} payload${p.buffer.length===1?'':'s'}${p.buffer.length?' waiting':''}`; $('#piNet').innerHTML=!p.on?'—':p.net?'<span class="pill ok">router → internet</span>':'<span class="pill bad">down</span>'; }
+function renderServer(){ const s=W.server; $('#devTbl').innerHTML= s.devices.length? `<table><thead><tr><th>Serial</th><th>Code</th><th>Status</th><th>Cfg</th></tr></thead><tbody>${s.devices.map(d=>`<tr><td class="mono">${d.serial}</td><td class="mono">${d.code}</td><td><span class="pill ${d.status==='assigned'?'ok':'accent'}">${d.status}</span></td><td>${d.cfg?'v'+d.cfg:'—'}</td></tr>`).join('')}</tbody></table>` : '<p class="empty">Nothing has registered yet.</p>';
+  $('#cfgOut').innerHTML= s.plant? `<dl class="kv"><dt>Plant</dt><dd>${esc(s.plant.name)} <span class="mono muted">${s.plant.id}</span></dd><dt>Checks</dt><dd><span class="pill ok">no overlaps</span> <span class="pill ok">no duplicates</span> <span class="pill ok">bus ok</span></dd><dt>Poll plan</dt><dd class="mono" style="font-weight:400">${s.plant.polls.map(p=>`${p.src==='plc'?'PLC':'meter'} FC${p.fc.toString().padStart(2,'0')} ${p.start}×${p.count}`).join('<br>')}</dd><dt>Version</dt><dd>v${s.version} · word order ${s.plant.order}</dd></dl>` : '<p class="empty">No plant draft yet.</p>';
+  $('#jobTbl').innerHTML= s.jobs.length? `<table><thead><tr><th>Job</th><th>Config</th><th>Status</th></tr></thead><tbody>${s.jobs.map(j=>`<tr><td class="mono">${j.id}</td><td>v${j.v}</td><td><span class="pill ${j.status==='applied'?'ok':j.status==='failed'?'bad':'accent'}">${j.status}</span></td></tr>`).join('')}</tbody></table>` : '<p class="empty">No jobs.</p>'; }
+function renderCloud(){ const c=W.cloud; $$('#ops5 span').forEach((el,i)=>el.className= i<W.ops?'done': i===W.ops?'cur':''); $('#topicPill').textContent=c.topic||'—'; $('#payload').textContent=c.payload?JSON.stringify(c.payload,null,1):'no payload yet'; $('#tilesPill').textContent=`${c.count} received`;
+  const t=c.tiles; $('#tiles').innerHTML= Object.keys(t).length? Object.entries(t).map(([k,v])=>`<div class="tile ${v.bad?'bad':''}"><div class="v">${v.text}<small>${esc(v.unit)}</small></div><div class="n">${k}</div></div>`).join('') : '<p class="empty">Nothing yet.</p>'; }
+function renderAll(){ renderPlant(); renderServer(); renderCloud(); }
+
+/* ---------- packets on the bus ---------- */
+function laneX(i){ const bus=$('#bus').getBoundingClientRect(); return bus.width*(i+0.5)/3; }
+async function pkt(from,to,label,kind=''){ if($('#bus').offsetParent===null){ await sleep(250); return; } const el=document.createElement('div'); el.className='pkt '+kind; el.textContent=label; el.style.left=laneX(from)+'px'; $('#bus').appendChild(el); const dur=650/Number($('#speed').value||1); const anim=el.animate([{left:laneX(from)+'px',opacity:.2},{opacity:1,offset:.15},{left:laneX(to)+'px',opacity:1}],{duration:dur,easing:'ease-in-out',fill:'forwards'}); await anim.finished.catch(()=>{}); await sleep(120); el.remove(); }
+
+/* ---------- the Pi, as a tiny state machine ---------- */
+function readCycle(){ const cfg=W.pi.cfg; const regs={plc:plcRegisters(),em1:meterRegisters()}; const values={}, quality={}; let dec=[];
+  for(const t of cfg.tags){ const span=t.type==='float32'||t.type==='int32'?2:1; const block=regs[t.src][t.addr]; if(!block||block.length<span){ values[t.name]=null; quality[t.name]='read failed: no data at '+t.addr; continue; } const raw=decode(block,t.type,t.src==='plc'?cfg.order:'ABCD'); const v=t.type==='bool'?raw:Math.round(raw*t.scale*1e4)/1e4; values[t.name]=v; if(span===2&&t.src==='plc') dec.push(`${t.name.padEnd(12)} ${block.map(hex).join(' ')}  ${cfg.order}→ ${typeof v==='number'?(Math.abs(v)>1e6||Math.abs(v)<1e-3?v.toExponential(2):v):v}`); }
+  // the flat site payload: plantId, plcId, TIMESTAMP, then one key per tag
+  const payload={plantId:cfg.plant_id,plcId:'PLC-01',TIMESTAMP:new Date().toISOString().slice(0,19)+'Z',serial:'DP-PI-0F3A21',config_version:cfg.version,...values}; if(Object.keys(quality).length) payload.quality=quality;
+  return {payload,dec}; }
+async function cycle(){ if(!W.pi.cfg) return; const {payload,dec}=readCycle(); $('#piDecode').hidden=false; $('#piDecode').textContent='decode  (register pairs → '+W.pi.cfg.order+')\n'+dec.join('\n'); hot('cPi'); W.pi.buffer.push(payload); renderPlant();
+  if(!W.pi.net){ log('pi','link down · payload buffered ('+W.pi.buffer.length+')'); return; }
+  const n=W.pi.buffer.length; while(W.pi.buffer.length){ const p=W.pi.buffer.shift(); await pkt(0,2,n>1?`payload ×${n} (flush)`:'payload','data'); deliver(p); if(n>1) break; } renderPlant(); }
+function deliver(p){ const c=W.cloud; c.payload=p; c.count++; c.tiles={}; for(const t of W.pi.cfg.tags){ const v=p[t.name]; const bad=v===null||(typeof v==='number'&&(Math.abs(v)>1e6||(Math.abs(v)<1e-3&&v!==0))); c.tiles[t.name]={text:v===null?'—':typeof v==='boolean'?(v?'ON':'OFF'):bad?v.toExponential(1):Number.isInteger(v)?v:v.toFixed(2),unit:t.unit,bad}; } hot('cTiles'); renderCloud(); if(p.quality) log('cloud',`payload has quality flags: ${Object.keys(p.quality).join(', ')}`); }
+function startPolling(){ stopPolling(); W.pi.polling=setInterval(()=>{ cycle(); }, 4000/Number($('#speed').value||1)); }
+function stopPolling(){ if(W&&W.pi.polling){ clearInterval(W.pi.polling); W.pi.polling=null; } }
+
+/* ---------- push a config version (shared by the story and the what-ifs) ---------- */
+async function pushConfig(tags,order,note){ const s=W.server; s.version++; s.plant={...s.plant,polls:pollPlan(tags),order,tags}; const job={id:'cfg-'+Math.random().toString(16).slice(2,8),v:s.version,status:'queued'}; s.jobs.unshift(job); renderServer(); hot('cCfg'); log('server',`compiled config v${s.version} · ${tags.length} tags · ${s.plant.polls.length} polls${note?' · '+note:''}`);
+  await pkt(2,1,'push v'+s.version); hot('cJobs'); log('server',`job ${job.id} queued for DP-PI-0F3A21`);
+  if(!W.pi.net){ log('server','device offline · job waits'); return job; }
+  await pkt(0,1,'heartbeat'); job.status='sent'; renderServer(); await pkt(1,0,'job + config v'+s.version); W.pi.cfg={version:s.version,plant_id:s.plant.id,tags,polls:s.plant.polls,order}; renderPlant(); log('pi',`applied config v${s.version} without a reboot`); await pkt(0,1,'ack applied','data'); job.status='applied'; s.devices[0].cfg=s.version; renderServer(); startPolling(); await cycle(); return job; }
+
+/* ---------- the story ---------- */
+const STORY=[
+  {title:'Site is wired. Pi is in the box.', desc:'The PLC already exposes its values as Modbus registers; the energy meter sits on an RS485 bus. The Pi runs the same base image as every other site: no plant details on it.', run:async()=>{ hot('cPlc'); hot('cMeter'); log('plant','PLC writes pH, DO, flow, level, blower state into registers 1000–2001'); log('plant','energy meter answers as RS485 slave 1 on /dev/ttyUSB0'); }},
+  {title:'Power on → the Pi registers itself', desc:'With power and an Ethernet cable to the router, the base image checks CPU temperature, RAM and internet, provisions its AWS identity, then reports its serial to the server, which issues a six-digit device code shown on the OLED. No one typed anything on the Pi.', run:async()=>{ W.pi.on=true; renderPlant(); log('pi','boot · base-2.4.0 · health check CPU 51°C RAM 62% free · internet ok'); await sleep(400); log('pi','provisioning: claim cert → own cert → Thing DP-PI-0F3A21'); await sleep(400); await pkt(0,1,'register DP-PI-0F3A21'); W.server.devices.push({serial:'DP-PI-0F3A21',code:'482913',status:'unassigned',cfg:null}); renderServer(); hot('cDev'); log('server','new device · device code 482913'); await pkt(1,0,'code 482913'); W.pi.registered=true; W.pi.code='482913'; renderPlant(); hot('cPi'); log('pi','OLED: "Device code 482 913" · cached in device_code.json'); W.ops=0; $('#opsNote').textContent='DP-PI-0F3A21 appears under “Waiting to be assigned”.'; renderCloud(); hot('cOps'); }},
+  {title:'Ops pairs the device', desc:'The field engineer reads the code off the Pi\'s OLED display; ops types it in the dashboard (or just clicks the device). A cloned SD card would never match.', run:async()=>{ await pkt(2,1,'pair 482913'); await pkt(1,2,'DP-PI-0F3A21 ✓'); W.ops=1; $('#opsNote').textContent='Paired. Now the plant: name, PLC ID, publish interval.'; renderCloud(); hot('cOps'); log('ops','paired DP-PI-0F3A21 by code'); await sleep(600); W.ops=2; $('#opsNote').textContent='Plant “Welspun STP 1.2 MLD”, topic welspun-stp-12/pub, every 60 s (10 s here so you can watch).'; renderCloud(); }},
+  {title:'Ops describes the plant and imports the tag list', desc:'PLC IP, the energy meter on USB 1, and the CSV from the PLC programmer; the number format stays on its default. The server validates it (no overlaps, no duplicates, bus addresses unique) and derives the poll plan. Nobody draws poll blocks by hand.', run:async()=>{ W.ops=3; $('#opsNote').textContent='Connections: PLC 192.168.10.20, ABCD; meter on /dev/ttyUSB0 slave 1.'; renderCloud(); await pkt(2,1,'draft (6 tags)'); W.server.plant={id:'welspun-stp-12',name:'Welspun STP 1.2 MLD',polls:pollPlan(TAGS),order:'ABCD',tags:TAGS}; renderServer(); hot('cCfg'); log('server','validated draft · poll plan: 4 PLC reads + 1 meter read'); W.ops=4; $('#opsNote').textContent='Tags: 6 rows imported from the PLC programmer’s CSV. No red rows.'; renderCloud(); }},
+  {title:'Push → job → the Pi applies v1 and starts polling', desc:'The server stores version 1 and queues a job. The Pi collects it on its next heartbeat (IoT Core Jobs in production), saves the config, opens Modbus to the PLC and the meter, and reads.', run:async()=>{ W.ops=5; $('#opsNote').textContent='Push config to device.'; renderCloud(); W.server.devices[0].status='assigned'; W.cloud.topic='welspun-stp-12/pub'; await pushConfig(TAGS,'ABCD'); }},
+  {title:'Every 10 s: poll → decode → publish', desc:'Each cycle reads the poll blocks, recombines the 16-bit register pairs into 32-bit values using the configured word order, applies scale, and publishes one JSON payload to the plant’s topic. Watch the decode box on the Pi and the tiles on the right. Then try the what-ifs below.', run:async()=>{ $$('.scen button').forEach(b=>b.disabled=false); $('#opsNote').textContent='Data flowing. Tiles refresh from each payload.'; log('cloud',"IoT rule SELECT * FROM '+/pub' → IAM role → SQS → dashboard"); }},
+];
+function renderStory(){ const i=W.stage; const st=STORY[Math.min(i,STORY.length-1)]; $('#stTitle').textContent= i>=STORY.length? 'Data is flowing. Try the what-ifs.' : `Step ${i+1} of ${STORY.length} · ${st.title}`; $('#stDesc').textContent= i>=STORY.length? 'Each what-if runs a short scenario on the same simulated plant and shows how the design handles it.' : st.desc; $('#stProg').innerHTML=STORY.map((_,k)=>`<i class="${k<i?'done':k===i?'cur':''}"></i>`).join(''); $('#nextBtn').disabled=i>=STORY.length||busy; $('#playBtn').disabled=i>=STORY.length||busy; }
+let busy=false;
+async function next(){ if(busy||W.stage>=STORY.length) return; busy=true; renderStory(); const st=STORY[W.stage]; log('—',`step ${W.stage+1}: ${st.title}`); await st.run(); W.stage++; busy=false; renderStory(); }
+async function playAll(){ while(W.stage<STORY.length){ await next(); await sleep(900); } }
+
+/* ---------- what-ifs ---------- */
+async function scenNet(){ const b=$('#scNet'); if(!W.pi.net){ W.pi.net=true; b.classList.remove('on'); b.querySelector('b').textContent='Internet drops at the site'; renderPlant(); log('pi','link restored · flushing buffer'); await cycle(); const pending=W.server.jobs.find(j=>j.status==='queued'); if(pending){ await pkt(0,1,'heartbeat'); pending.status='sent'; renderServer(); await pkt(1,0,'job + config v'+pending.v); W.pi.cfg={...W.pi.cfg,version:pending.v,tags:W.server.plant.tags,polls:W.server.plant.polls,order:W.server.plant.order}; renderPlant(); await pkt(0,1,'ack applied','data'); pending.status='applied'; W.server.devices[0].cfg=pending.v; renderServer(); log('pi',`applied the config v${pending.v} that waited for it`); } return; } W.pi.net=false; b.classList.add('on'); b.querySelector('b').textContent='Restore the internet'; renderPlant(); log('pi','link down · reads continue, payloads buffer to disk'); }
+async function scenOrder(){ if(busy) return; busy=true; $('#scOrder').disabled=true; log('ops','what-if: the PLC integrator said “low word first”. Ops sets CDAB.'); await pushConfig(W.server.plant.tags,'CDAB','word order CDAB'); await sleep(800); log('cloud','floats decode to nonsense (1e-38, 1e+21) · tiles turn red'); await sleep(1200); log('ops','Tags step → “Find the number format”: expected 7.2 + the two registers → ABCD matches · Use · push'); await pushConfig(W.server.plant.tags,'ABCD','word order back to ABCD'); busy=false; renderStory(); }
+async function scenAddr(){ if(busy) return; busy=true; $('#scAddr').disabled=true; log('plant','what-if: the PLC program was changed · DO moved from 1200 to 1210'); PLC_MAP.DO=1210; renderPlant(); hot('cPlc'); await cycle(); await sleep(800); log('cloud','DO_Aeration shows “—” with quality “read failed” · ops asks the PLC programmer'); await sleep(1000); const tags=W.server.plant.tags.map(t=>t.name==='DO_Aeration'?{...t,addr:1210}:t); await pushConfig(tags,W.server.plant.order,'DO_Aeration → 1210'); busy=false; renderStory(); }
+async function scenTag(){ if(busy) return; busy=true; $('#scTag').disabled=true; log('ops','what-if: add Blower2_Run (coil 2002) on the Tags step and push'); TRUE.Blower2=0; const base=plcRegisters; const tags=[...W.server.plant.tags,{name:'Blower2_Run',src:'plc',addr:2002,type:'bool',scale:1,unit:''}]; PLC_MAP.Blower2=2002; await pushConfig(tags,W.server.plant.order,'+Blower2_Run'); busy=false; renderStory(); }
+// Blower2 needs a register once added
+const _plcRegisters=plcRegisters; plcRegisters=function(){ const r=_plcRegisters(); if(PLC_MAP.Blower2) r[PLC_MAP.Blower2]=[TRUE.Blower2??0]; return r; };
+
+/* ---------- boot ---------- */
+function reset(){ stopPolling(); W=fresh(); PLC_MAP={pH:1000, DO:1200, Flow:1400, Level:1600, Blower1:2001}; delete TRUE.Blower2; $('#log').innerHTML=''; $('#piDecode').hidden=true; $$('.scen button').forEach(b=>{ b.disabled=true; b.classList.remove('on'); }); $('#scNet b').textContent='Internet drops at the site'; $('#opsNote').textContent='Waiting for a device to appear.'; busy=false; renderAll(); renderStory(); log('—','reset · Pi in the box, plant wired'); }
+$('#nextBtn').onclick=next; $('#playBtn').onclick=playAll; $('#resetBtn').onclick=reset; $('#scNet').onclick=scenNet; $('#scOrder').onclick=scenOrder; $('#scAddr').onclick=scenAddr; $('#scTag').onclick=scenTag;
+$('#speed').onchange=()=>{ if(W.pi.polling) startPolling(); };
+setInterval(()=>{ if(W&&W.stage>0) renderPlant(); },2000);
+reset();
+</script>
